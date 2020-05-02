@@ -23,7 +23,7 @@ export class DomainGenerator {
   data() {
     const version = this.version;
     const versionPart = version === 'tot' ? '' : ` - version ${version}`;
-    const title = `Chrome DevTools Protocol${versionPart}`
+    const title = `Web Replay Protocol`
     return {
       layout: 'shell.hbs',
       title,
