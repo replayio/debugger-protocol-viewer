@@ -6,10 +6,10 @@ module.exports = (eleventyConfig) => {
   eleventyConfig.addPassthroughCopy('pages/service-worker.js');
 
   return {
-    pathPrefix: '/devtools-protocol/',
+    pathPrefix: '/protocol/',
     dir: {
       input: 'pages',
-      output: 'devtools-protocol',
+      output: 'protocol',
       data: '_data',
     },
   };

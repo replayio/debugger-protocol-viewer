@@ -4,7 +4,7 @@ import { terser } from "rollup-plugin-terser";
 export default {
   input: 'pages/scripts/index.js',
   output: {
-    file: 'devtools-protocol/scripts/index.js',
+    file: 'protocol/scripts/index.js',
     format: 'esm',
   },
   plugins: [ resolve(), terser(), ],

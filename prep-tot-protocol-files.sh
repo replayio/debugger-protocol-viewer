@@ -29,4 +29,3 @@ cd $local_script_path
 cat pages/tot.md | sed -Ee "s/^(<code browser>)Date.*/\1$br_date_line/" > pages/tot.md.new
 cat pages/tot.md.new | sed -Ee "s/^(<code js>)Date.*/\1$js_date_line/"  > pages/tot.md
 rm -f pages/tot.md.new
-
