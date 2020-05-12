@@ -188,9 +188,15 @@ export class DomainGenerator {
   }
 
   detailsTemplate(typeName, domain, details) {
-    const {name, description, id, type, experimental, deprecated} = details;
+    const {name, description, id, type, $ref, experimental, deprecated} = details;
     const computedId = computeHash(typeName, name, id);
     const actualName = name || id;
+
+    let referral = "";
+    if ($ref) {
+      const url = this.computeReferralUrl(domain, $ref);
+      referral = html`<p class="type-type">Type: <strong><a href=${url}>${$ref}</a></strong></p>`;
+    }
 
     return html`
       <div class="details">
@@ -207,6 +213,7 @@ export class DomainGenerator {
           ? html`<p class="type-type">Type: <strong>${type}</strong></p>`
           : ''
         }
+        ${referral}
         ${this.propertiesDetailsTemplate(domain, details)}
         ${this.returnDetailsTemplate(domain, details)}
       </div>
