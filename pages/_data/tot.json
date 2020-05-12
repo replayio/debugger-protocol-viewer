@@ -6,22 +6,892 @@
     "domains": [
         {
             "domain": "Recording",
-            "description": "The Recording domain defines methods for managing recordings. Recordings are\nblobs of binary data which grow over time.",
+            "description": "The Recording domain defines methods for managing recordings.",
             "types": [
                 {
-                    "id": "RecordingID",
+                    "id": "RecordingId",
                     "description": "Globally unique identifier for a recording.",
                     "type": "string"
                 },
                 {
-                    "id": "BuildID",
+                    "id": "BuildId",
                     "description": "Unique identifier for the software used to produce a recording.",
                     "type": "string"
                 },
                 {
                     "id": "TimeStamp",
-                    "description": "A time which can be used in reference to a recording. This is the elapsed\ntime in seconds since the recording started.",
+                    "description": "A point in time within a recording, specified as the elapsed time in\nmilliseconds since the recording started. Sub-millisecond resolution\nis possible.",
                     "type": "number"
+                },
+                {
+                    "id": "TimeRange",
+                    "description": "Description for a range of time within a recording.",
+                    "type": "object",
+                    "properties": [
+                        {
+                            "name": "begin",
+                            "$ref": "TimeStamp"
+                        },
+                        {
+                            "name": "end",
+                            "$ref": "TimeStamp"
+                        }
+                    ]
+                },
+                {
+                    "id": "ExecutionPoint",
+                    "description": "Identifier for a point within a recording at which the program state can be\ninspected. Execution points are integers encoded as base-10 numeric strings,\nsuch that smaller numbered points precede larger numbered ones. They can be\ncompared by e.g. converting to BigInts and then comparing those BigInts.",
+                    "type": "string"
+                },
+                {
+                    "id": "TimeStampedPoint",
+                    "description": "An execution point and its associated time stamp. Recordings always have a\nbeginning execution point with value \"0\" and a time stamp of zero.",
+                    "type": "object",
+                    "properties": [
+                        {
+                            "name": "point",
+                            "$ref": "ExecutionPoint"
+                        },
+                        {
+                            "name": "time",
+                            "$ref": "TimeStamp"
+                        }
+                    ]
+                },
+                {
+                    "id": "MouseEvent",
+                    "description": "A mouse event that occurs somewhere in a recording.",
+                    "$ref": "TimeStampedPoint",
+                    "properties": [
+                        {
+                            "name": "kind",
+                            "description": "Kind of mouse event.",
+                            "$ref": "MouseEventKind"
+                        },
+                        {
+                            "name": "clientX",
+                            "description": "X coordinate of the event, relative to the upper left of the page's main window.",
+                            "type": "integer"
+                        },
+                        {
+                            "name": "clientY",
+                            "description": "Y coordinate of the event, relative to the upper left of the page's main window.",
+                            "type": "integer"
+                        }
+                    ]
+                },
+                {
+                    "id": "MouseEventKind",
+                    "description": "Kinds of mouse events described in a recording.",
+                    "type": "string",
+                    "enum": [
+                        "mousemove",
+                        "mousedown"
+                    ]
+                }
+            ],
+            "commands": [
+                {
+                    "name": "getDescription",
+                    "description": "Get a description of a recording.",
+                    "parameters": [
+                        {
+                            "name": "recordingId",
+                            "description": "Recording to get the description for.",
+                            "$ref": "RecordingId"
+                        }
+                    ],
+                    "returns": [
+                        {
+                            "name": "duration",
+                            "description": "Duration of the recording.",
+                            "$ref": "TimeStamp"
+                        },
+                        {
+                            "name": "lastScreen",
+                            "description": "Painted graphics at the end of the recording.",
+                            "optional": true,
+                            "$ref": "Graphics.ScreenShot"
+                        }
+                    ]
+                },
+                {
+                    "name": "createSession",
+                    "description": "Create a session for inspecting a recording.",
+                    "parameters": [
+                        {
+                            "name": "recordingId",
+                            "description": "Recording to load into the session.",
+                            "$ref": "RecordingId"
+                        }
+                    ],
+                    "returns": [
+                        {
+                            "name": "sessionId",
+                            "description": "Identifier for the new session.",
+                            "$ref": "Session.SessionId"
+                        }
+                    ]
+                },
+                {
+                    "name": "releaseSession",
+                    "description": "Release a session and allow its resources to be reclaimed.",
+                    "parameters": [
+                        {
+                            "name": "sessionId",
+                            "description": "Session to release.",
+                            "$ref": "Session.SessionId"
+                        }
+                    ]
+                }
+            ]
+        },
+        {
+            "domain": "Session",
+            "description": "The Session domain defines methods for using recording sessions. In order to\ninspect a recording, it must first be loaded into a session via\n<code>Recording.createSession</code>.\n\nAfter the session is created, it is an unprocessed state. Commands sent using\nthe session to query information about the recording will only find\ninformation about parts of the recording that have been processed. Processing\nstarts automatically after the session is created.\n\n<br><br>All commands and events in this domain must include a <code>sessionId</code>.",
+            "types": [
+                {
+                    "id": "SessionId",
+                    "description": "Unique identifier for a session which a recording has been loaded into.",
+                    "type": "string"
+                }
+            ],
+            "commands": [
+                {
+                    "name": "ensureProcessed",
+                    "description": "Does not return until the recording is fully processed. Before returning,\n<code>missingRegions</code> and <code>unprocessedRegions</code> events will\nbe periodically emitted."
+                },
+                {
+                    "name": "findMouseEvents",
+                    "description": "Find all points in the recording at which a mouse move or click occurred.\nDoes not return until the recording is fully processed. Before returning,\n<code>mouseEvents</code> events will be periodically emitted. The union\nof all these events describes all mouse events in the recording."
+                },
+                {
+                    "name": "getEndpoint",
+                    "description": "Get the last execution point in the recording.",
+                    "returns": [
+                        {
+                            "name": "endpoint",
+                            "$ref": "Recording.TimeStampedPoint"
+                        }
+                    ]
+                },
+                {
+                    "name": "createPause",
+                    "description": "Create a pause describing the state at an execution point.",
+                    "parameters": [
+                        {
+                            "name": "point",
+                            "description": "Point to create the pause at.",
+                            "$ref": "Recording.ExecutionPoint"
+                        }
+                    ],
+                    "returns": [
+                        {
+                            "name": "pauseId",
+                            "description": "Identifier for the new pause.",
+                            "$ref": "Pause.PauseId"
+                        },
+                        {
+                            "name": "stack",
+                            "description": "IDs of all frames on the stack. Omitted if there are no\nframes on the stack at this point.",
+                            "optional": true,
+                            "type": "array",
+                            "items": {
+                                "$ref": "Pause.CallFrameId"
+                            }
+                        },
+                        {
+                            "name": "data",
+                            "description": "Optional data describing the frames on the stack and the in scope\nvariables of the topmost frame.",
+                            "optional": true,
+                            "$ref": "Pause.PauseData"
+                        }
+                    ]
+                },
+                {
+                    "name": "releasePause",
+                    "description": "Release a pause and allow its resources to be reclaimed.",
+                    "parameters": [
+                        {
+                            "name": "pauseId",
+                            "$ref": "Pause.PauseId"
+                        }
+                    ]
+                }
+            ],
+            "events": [
+                {
+                    "name": "missingRegions",
+                    "description": "Event describing regions of the recording that have not been uploaded.",
+                    "parameters": [
+                        {
+                            "name": "regions",
+                            "description": "Regions that have not been uploaded.",
+                            "type": "array",
+                            "items": {
+                                "$ref": "Recording.TimeRange"
+                            }
+                        }
+                    ]
+                },
+                {
+                    "name": "unprocessedRegions",
+                    "description": "Event describing regions of the recording that have not been processed.",
+                    "parameters": [
+                        {
+                            "name": "regions",
+                            "description": "Any missing regions are also unprocessed regions.",
+                            "type": "array",
+                            "items": {
+                                "$ref": "Recording.TimeRange"
+                            }
+                        }
+                    ]
+                },
+                {
+                    "name": "mouseEvents",
+                    "description": "Describes some mouse events that occur in the recording.",
+                    "parameters": [
+                        {
+                            "name": "events",
+                            "type": "array",
+                            "items": {
+                                "$ref": "Recording.MouseEvent"
+                            }
+                        }
+                    ]
+                }
+            ]
+        },
+        {
+            "domain": "Graphics",
+            "description": "The Graphics domain defines methods for accessing a recording's graphics data.\n\n<br><br>All commands and events in this domain must include a <code>sessionId</code>.",
+            "commands": [
+                {
+                    "name": "findPaints",
+                    "description": "Find all points in the recording at which paints occurred. Does not return\nuntil the recording is fully processed. Before returning,\n<code>paintPoints</code> events will be periodically emitted. The union\nof all these events describes all paint points in the recording."
+                },
+                {
+                    "name": "getPaintContents",
+                    "description": "Get the graphics at a point where a paint occurred.",
+                    "parameters": [
+                        {
+                            "name": "point",
+                            "description": "Execution point to get the graphics for. This must have been listed in\na paintPoints event.",
+                            "$ref": "Recording.ExecutionPoint"
+                        },
+                        {
+                            "name": "mimeType",
+                            "description": "Encoding format for the returned screen.",
+                            "$ref": "MimeType"
+                        }
+                    ],
+                    "returns": [
+                        {
+                            "name": "screen",
+                            "description": "Screen shot of the rendered graphics.",
+                            "$ref": "ScreenShot"
+                        }
+                    ]
+                }
+            ],
+            "events": [
+                {
+                    "name": "paintPoints",
+                    "description": "Describes some points in the recording at which paints occurred. No paint\nwill occur for the recording's beginning execution point.",
+                    "parameters": [
+                        {
+                            "name": "paints",
+                            "type": "array",
+                            "items": {
+                                "$ref": "PaintPoint"
+                            }
+                        }
+                    ]
+                }
+            ],
+            "types": [
+                {
+                    "id": "MimeType",
+                    "description": "Graphics encoding format.",
+                    "type": "string",
+                    "enum": [
+                        "image/jpeg",
+                        "image/png"
+                    ]
+                },
+                {
+                    "id": "ScreenShotHash",
+                    "description": "Compact hash code for a screen shot.",
+                    "type": "string"
+                },
+                {
+                    "id": "ScreenShotDescription",
+                    "description": "Compact description of the graphics rendered at some point.",
+                    "type": "object",
+                    "properties": [
+                        {
+                            "name": "mimeType",
+                            "description": "Encoding used for the screen shot.",
+                            "$ref": "MimeType"
+                        },
+                        {
+                            "name": "hash",
+                            "description": "Hash code for the screen shot's graphics data.",
+                            "$ref": "ScreenShotHash"
+                        }
+                    ]
+                },
+                {
+                    "id": "ScreenShot",
+                    "description": "Complete contents of the graphics rendered at some point.",
+                    "$ref": "ScreenShotDescription",
+                    "properties": [
+                        {
+                            "name": "data",
+                            "description": "Raw graphics data encoded in base64.",
+                            "type": "string"
+                        }
+                    ]
+                },
+                {
+                    "id": "PaintPoint",
+                    "description": "Information about a point where a paint occurred.",
+                    "$ref": "Recording.TimeStampedPoint",
+                    "properties": [
+                        {
+                            "name": "screenShots",
+                            "description": "Available screen shots for the graphics rendered at this point.",
+                            "type": "array",
+                            "items": {
+                                "$ref": "ScreenShotDescription"
+                            }
+                        }
+                    ]
+                }
+            ]
+        },
+        {
+            "domain": "Debugger",
+            "description": "The Debugger domain defines methods for accessing JS scripts and navigating\naround the recording using breakpoints, stepping, and so forth.\n\n<br><br>All commands and events in this domain must include a <code>sessionId</code>.",
+            "commands": [
+                {
+                    "name": "findScripts",
+                    "description": "Find all scripts in the recording. Does not return until the recording is\nfully processed. Before returning, <code>scriptParsed</code> events will be\nemitted for every script in the recording."
+                },
+                {
+                    "name": "getScriptSource",
+                    "description": "Get the source contents of a script.",
+                    "parameters": [
+                        {
+                            "name": "scriptId",
+                            "description": "Script to fetch the source for.",
+                            "$ref": "ScriptId"
+                        }
+                    ],
+                    "returns": [
+                        {
+                            "name": "scriptSource",
+                            "description": "Source contents of the script.",
+                            "type": "string"
+                        },
+                        {
+                            "name": "contentType",
+                            "description": "Content type of the source contents. For scripts originating from inline\n<code>script</code> tags this will be <code>text/html</code>, and the\nsource includes the associated HTML file's entire contents. For other\nscripts this is <code>text/javascript</code>.",
+                            "$ref": "ContentType"
+                        }
+                    ]
+                },
+                {
+                    "name": "getPossibleBreakpoints",
+                    "description": "Get a compact representation of the locations where breakpoints can be set\nin a region of a script.",
+                    "parameters": [
+                        {
+                            "name": "scriptId",
+                            "description": "Script to return breakpoint locations for.",
+                            "$ref": "ScriptId"
+                        },
+                        {
+                            "name": "begin",
+                            "description": "If specified, earlier breakpoint locations will be excluded.",
+                            "optional": true,
+                            "$ref": "ScriptLocation"
+                        },
+                        {
+                            "name": "end",
+                            "description": "If specified, later breakpoint locations will be excluded.",
+                            "optional": true,
+                            "$ref": "ScriptLocation"
+                        }
+                    ],
+                    "returns": [
+                        {
+                            "name": "lineLocations",
+                            "description": "All breakpoint locations in the specified script and range.",
+                            "type": "array",
+                            "items": {
+                                "$ref": "SameLineScriptLocations"
+                            }
+                        }
+                    ]
+                },
+                {
+                    "name": "setBreakpoint",
+                    "description": "Set a breakpoint at a location.",
+                    "parameters": [
+                        {
+                            "name": "location",
+                            "description": "Location to set the breakpoint at.",
+                            "$ref": "Location"
+                        },
+                        {
+                            "name": "condition",
+                            "description": "Any condition which must evaluate to a non-falsy value for an execution\npoint to hit the breakpoint.",
+                            "optional": true,
+                            "type": "string"
+                        }
+                    ],
+                    "returns": [
+                        {
+                            "name": "breakpointId",
+                            "description": "ID for the new breakpoint.",
+                            "$ref": "BreakpointId"
+                        }
+                    ]
+                },
+                {
+                    "name": "removeBreakpoint",
+                    "description": "Remove a breakpoint.",
+                    "parameters": [
+                        {
+                            "name": "breakpointId",
+                            "$ref": "BreakpointId"
+                        }
+                    ]
+                },
+                {
+                    "name": "findRewindTarget",
+                    "description": "Find the point to pause at when rewinding from a point.",
+                    "parameters": [
+                        {
+                            "name": "point",
+                            "description": "Point to start rewinding from.",
+                            "$ref": "Recording.ExecutionPoint"
+                        }
+                    ],
+                    "returns": [
+                        {
+                            "name": "target",
+                            "description": "Point where execution should pause when rewinding.",
+                            "$ref": "PauseDescription"
+                        }
+                    ]
+                }
+            ],
+            "events": [
+                {
+                    "name": "scriptParsed",
+                    "description": "Describes a script that was successfully parsed.",
+                    "parameters": [
+                        {
+                            "name": "scriptId",
+                            "description": "ID for the script.",
+                            "$ref": "ScriptId"
+                        },
+                        {
+                            "name": "url",
+                            "description": "URL of the script. Omitted for dynamically generated scripts (from eval etc.).",
+                            "optional": true,
+                            "type": "string"
+                        },
+                        {
+                            "name": "sourceMapURL",
+                            "description": "Any source map URL for the script.",
+                            "optional": true,
+                            "type": "string"
+                        }
+                    ]
+                }
+            ],
+            "types": [
+                {
+                    "id": "ScriptId",
+                    "description": "Unique ID for a script.",
+                    "type": "string"
+                },
+                {
+                    "id": "ContentType",
+                    "description": "Possible content types for script sources.",
+                    "type": "string",
+                    "enum": [
+                        "text/javascript",
+                        "text/html"
+                    ]
+                },
+                {
+                    "id": "ScriptLocation",
+                    "description": "Location within a particular script.",
+                    "type": "object",
+                    "properties": [
+                        {
+                            "name": "line",
+                            "description": "0-indexed line in the script's source.",
+                            "type": "integer"
+                        },
+                        {
+                            "name": "column",
+                            "description": "0-indexed column in the script's source.",
+                            "type": "integer"
+                        }
+                    ]
+                },
+                {
+                    "id": "SameLineScriptLocations",
+                    "description": "Set of locations which are all on the same line of the same script.",
+                    "type": "object",
+                    "properties": [
+                        {
+                            "name": "line",
+                            "description": "Common line number for the locations.",
+                            "type": "integer"
+                        },
+                        {
+                            "name": "columns",
+                            "description": "Different column numbers for the locations.",
+                            "type": "array",
+                            "items": {
+                                "type": "integer"
+                            }
+                        }
+                    ]
+                },
+                {
+                    "id": "Location",
+                    "description": "Location within a script.",
+                    "$ref": "ScriptLocation",
+                    "properties": [
+                        {
+                            "name": "scriptId",
+                            "$ref": "ScriptId"
+                        }
+                    ]
+                },
+                {
+                    "id": "BreakpointId",
+                    "description": "ID for a breakpoint.",
+                    "type": "string"
+                },
+                {
+                    "id": "PauseDescription",
+                    "description": "Basic description of a point where execution can pause.",
+                    "$ref": "Recording.TimeStampedPoint",
+                    "properties": [
+                        {
+                            "name": "frame",
+                            "description": "Location of the topmost frame, omitted if there are no frames on stack.",
+                            "optional": true,
+                            "$ref": "Location"
+                        }
+                    ]
+                }
+            ]
+        },
+        {
+            "domain": "Pause",
+            "description": "The Pause domain is used to inspect the state of the program when it is paused\nat particular execution points.\n\n<br><br>All commands and events in this domain must include both a <code>sessionId</code>\nand a <code>pauseId</code>.",
+            "types": [
+                {
+                    "id": "PauseId",
+                    "description": "Unique identifier for a pause session where the program state can be inspected.\nPauses are each associated with a specific execution point, and when created\nreflect the program state when it reached that point. Operations on a pause\ncan have side effects due to evaluations and so forth. These side effects will\naffect later results produced for the same pause, but will have no effect on\nthe state of the program in other pauses.",
+                    "type": "string"
+                },
+                {
+                    "id": "CallFrameId",
+                    "description": "Identifier for a call frame in a pause.",
+                    "type": "string"
+                },
+                {
+                    "id": "ScopeId",
+                    "description": "Identifier for a scope in a pause.",
+                    "type": "string"
+                },
+                {
+                    "id": "ObjectId",
+                    "description": "Identifier for a JS object in a pause.",
+                    "type": "string"
+                },
+                {
+                    "id": "Value",
+                    "description": "Description of a value. At most one property will be specified.\nIf no properties are specified, the value is <code>undefined</code>.",
+                    "type": "object",
+                    "properties": [
+                        {
+                            "name": "value",
+                            "description": "For non-object values that are valid JSON values.",
+                            "optional": true,
+                            "type": "any"
+                        },
+                        {
+                            "name": "unserializable",
+                            "description": "For non-object values that are not valid JSON values.",
+                            "optional": true,
+                            "$ref": "UnserializableValue"
+                        },
+                        {
+                            "name": "object",
+                            "description": "For object values.",
+                            "optional": true,
+                            "$ref": "ObjectId"
+                        }
+                    ]
+                },
+                {
+                    "id": "NamedValue",
+                    "description": "Description of a value, with an associated name.",
+                    "$ref": "Value",
+                    "properties": [
+                        {
+                            "name": "name",
+                            "type": "string"
+                        }
+                    ]
+                },
+                {
+                    "id": "CallFrame",
+                    "description": "Description of a call frame.",
+                    "type": "object",
+                    "properties": [
+                        {
+                            "name": "callFrameId",
+                            "description": "ID of this frame.",
+                            "$ref": "CallFrameId"
+                        },
+                        {
+                            "name": "location",
+                            "description": "Location in the source of where this frame is paused at.",
+                            "$ref": "Location"
+                        },
+                        {
+                            "name": "scopeChain",
+                            "description": "Scope chain for the call frame, from innermost to outermost.",
+                            "type": "array",
+                            "items": {
+                                "$ref": "ScopeId"
+                            }
+                        },
+                        {
+                            "name": "this",
+                            "description": "<code>this</code> value of the call frame.",
+                            "$ref": "Value"
+                        }
+                    ]
+                },
+                {
+                    "id": "Scope",
+                    "description": "Description of a scope.",
+                    "type": "object",
+                    "properties": [
+                        {
+                            "name": "scopeId",
+                            "description": "ID of this scope.",
+                            "$ref": "ScopeId"
+                        },
+                        {
+                            "name": "type",
+                            "description": "Type of this scope.",
+                            "$ref": "ScopeType"
+                        },
+                        {
+                            "name": "functionLexical",
+                            "description": "Set for the top-level lexical scope of a function.",
+                            "optional": true,
+                            "type": "boolean"
+                        },
+                        {
+                            "name": "object",
+                            "description": "For <code>global</code> and <code>with</code> scopes, the underlying object.",
+                            "optional": true,
+                            "$ref": "ObjectId"
+                        },
+                        {
+                            "name": "bindings",
+                            "description": "For <code>function</code> and <code>block</code> scopes, the scope bindings.",
+                            "optional": true,
+                            "type": "array",
+                            "items": {
+                                "$ref": "NamedValue"
+                            }
+                        }
+                    ]
+                },
+                {
+                    "id": "ScopeType",
+                    "description": "Possible types of a scope.",
+                    "type": "string",
+                    "enum": [
+                        "global",
+                        "with",
+                        "function",
+                        "block"
+                    ]
+                },
+                {
+                    "id": "Object",
+                    "description": "Description of an object.",
+                    "type": "object",
+                    "properties": [
+                        {
+                            "name": "objectId",
+                            "description": "ID of this object.",
+                            "$ref": "ObjectId"
+                        },
+                        {
+                            "name": "className",
+                            "description": "Object class name.",
+                            "type": "string"
+                        },
+                        {
+                            "name": "prototypeId",
+                            "description": "ID of the prototype, if there is one.",
+                            "optional": true,
+                            "$ref": "ObjectId"
+                        },
+                        {
+                            "name": "description",
+                            "description": "String representation of the object, if available.",
+                            "optional": true,
+                            "type": "string"
+                        },
+                        {
+                            "name": "preview",
+                            "description": "Any preview data available for the object's properties.",
+                            "optional": true,
+                            "$ref": "ObjectPreview"
+                        }
+                    ]
+                },
+                {
+                    "id": "ObjectPreview",
+                    "description": "Description of some or all of an object's contents.",
+                    "$ref": "Object",
+                    "properties": [
+                        {
+                            "name": "overflow",
+                            "description": "Whether there are additional contents not in this preview.",
+                            "type": "boolean"
+                        },
+                        {
+                            "name": "properties",
+                            "description": "Descriptors of the object's own properties.",
+                            "optional": true,
+                            "type": "array",
+                            "items": {
+                                "$ref": "Property"
+                            }
+                        },
+                        {
+                            "name": "containerEntries",
+                            "description": "Entries of container objects.",
+                            "optional": true,
+                            "type": "array",
+                            "items": {
+                                "$ref": "ContainerEntry"
+                            }
+                        },
+                        {
+                            "name": "getterValues",
+                            "description": "Results of evaluating getter properties from this or the prototype chain\non this object, if they could be evaluated without side effects.",
+                            "optional": true,
+                            "type": "array",
+                            "items": {
+                                "$ref": "NamedValue"
+                            }
+                        }
+                    ]
+                },
+                {
+                    "id": "Property",
+                    "description": "Description of an object's own property. The <code>NamedValue</code> members\nindicate the property's name and its value if it is a data descriptor.",
+                    "$ref": "NamedValue",
+                    "properties": [
+                        {
+                            "name": "flags",
+                            "description": "Configuration flags for the property, omitted if the property is\nwritable, configurable, and enumerable (a bitmask of <code>7</code>).",
+                            "optional": true,
+                            "$ref": "PropertyConfigurationFlags"
+                        },
+                        {
+                            "name": "get",
+                            "description": "Any getter function if this is an accessor property.",
+                            "optional": true,
+                            "$ref": "ObjectId"
+                        },
+                        {
+                            "name": "set",
+                            "description": "Any setter function if this is an accessor property.",
+                            "optional": true,
+                            "$ref": "ObjectId"
+                        }
+                    ]
+                },
+                {
+                    "id": "PropertyConfigurationFlags",
+                    "description": "Compact bitmask of configuration flags on a property. Possible values in the mask\nare <code>1</code> (whether the property is writable), <code>2</code>\n(whether the property is configurable), <code>4</code> (whether the\nproperty is enumerable), and combinations of these values using bitwise-or.",
+                    "type": "integer"
+                },
+                {
+                    "id": "ContainerEntry",
+                    "description": "An entry in a container object (maps, sets, weak maps, and weak sets).",
+                    "$ref": "Object",
+                    "properties": [
+                        {
+                            "name": "key",
+                            "description": "For maps and weak maps, this entry's key.",
+                            "optional": true,
+                            "$ref": "Value"
+                        },
+                        {
+                            "name": "value",
+                            "description": "This entry's value.",
+                            "$ref": "Value"
+                        }
+                    ]
+                },
+                {
+                    "id": "UnserializableValue",
+                    "description": "String representation of a defined value that is not a valid JSON value:\n<code>-0</code>, <code>Infinity</code>, <code>-Infinity</code>,\n<code>NaN</code>, and BigInts.",
+                    "type": "string"
+                },
+                {
+                    "id": "PauseData",
+                    "description": "Block of data from this pause which might be useful to the protocol client.\nTo reduce the number of back-and-forth calls required over the protocol,\ndata which wasn't specifically asked for can be returned by commands or\nevents. <code>PauseData</code> objects will not duplicate data from a\n<code>PauseData</code> object produced earlier for the same pause.",
+                    "type": "object",
+                    "properties": [
+                        {
+                            "name": "frames",
+                            "optional": true,
+                            "type": "array",
+                            "items": {
+                                "$ref": "CallFrame"
+                            }
+                        },
+                        {
+                            "name": "scopes",
+                            "optional": true,
+                            "type": "array",
+                            "items": {
+                                "$ref": "Scope"
+                            }
+                        },
+                        {
+                            "name": "objects",
+                            "optional": true,
+                            "type": "array",
+                            "items": {
+                                "$ref": "Object"
+                            }
+                        }
+                    ]
                 }
             ]
         },
@@ -51,15 +921,15 @@
                     "parameters": [
                         {
                             "name": "buildId",
-                            "description": "Build ID of the software which produced the recording.",
-                            "$ref": "Recording.BuildID"
+                            "description": "Build Id of the software which produced the recording.",
+                            "$ref": "Recording.BuildId"
                         }
                     ],
                     "returns": [
                         {
                             "name": "recordingId",
                             "description": "Identifier for the recording.",
-                            "$ref": "Recording.RecordingID"
+                            "$ref": "Recording.RecordingId"
                         }
                     ]
                 },
@@ -70,7 +940,7 @@
                         {
                             "name": "recordingId",
                             "description": "ID of the recording data is being added to. This recording must have\nbeen produced by a createRecording command previously sent on this\nconnection.",
-                            "$ref": "Recording.RecordingID"
+                            "$ref": "Recording.RecordingId"
                         },
                         {
                             "name": "offset",
@@ -86,12 +956,12 @@
                 },
                 {
                     "name": "addRecordingDescription",
-                    "description": "Add metadata about a recording. This information is advisory and does not\nneed to be correct, but can be fetched and used when loading recordings for\nreplay (especially recordings that haven't finished uploading).",
+                    "description": "Add metadata about a recording.",
                     "parameters": [
                         {
                             "name": "recordingId",
                             "description": "ID of the recording being described.",
-                            "$ref": "Recording.RecordingID"
+                            "$ref": "Recording.RecordingId"
                         },
                         {
                             "name": "length",
@@ -102,6 +972,18 @@
                             "name": "duration",
                             "description": "Duration of the entire recording.",
                             "$ref": "Recording.TimeStamp"
+                        },
+                        {
+                            "name": "lastScreenMimeType",
+                            "description": "Mime type for graphics data at the end of the recording.",
+                            "optional": true,
+                            "$ref": "Graphics.MimeType"
+                        },
+                        {
+                            "name": "lastScreenData",
+                            "description": "Raw graphics data for the end of the recording.",
+                            "optional": true,
+                            "type": "string"
                         }
                     ]
                 }

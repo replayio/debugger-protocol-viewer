@@ -25,11 +25,13 @@ The protocol is used by sending it requests over the websocket.  Requests are st
 
 <ul><code>id</code>: String or integer which is unique for this request among all requests made over the connection.</ul>
 
-<ul><code>sessionId</code>: String identifying any associated session. This is required for methods in certain domains, and omitted for others.</ul>
-
 <ul><code>method</code>: Name of the method used for the request.</ul>
 
 <ul><code>params</code>: Object containing any parameters for the request.  Keys in the object are the method's parameter names.  This may be omitted for requests with no parameters.</ul>
+
+<ul><code>sessionId</code>: String identifying any associated session. This is required for methods in certain domains, and omitted for others.</ul>
+
+<ul><code>pauseId</code>: String identifying any associated pause. This is required for methods in certain domains, and omitted for others.</ul>
 
 </list>
 
@@ -51,11 +53,11 @@ Events can be emitted by the cloud service which are not responses to a message.
 
 <list>
 
-<ul><code>sessionId</code>: String identifying any associated session. This is used for events in certain domains, and omitted for others.</ul>
-
 <ul><code>method</code>: Name of the event being emitted.</ul>
 
 <ul><code>params</code>: Object containing any parameters for the event.  Keys in the object are the event's parameter names.  This may be omitted for events with no parameters.</ul>
+
+<ul><code>sessionId</code>: String identifying any associated session. This is used for events in certain domains, and omitted for others.</ul>
 
 </list>
 
