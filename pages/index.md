@@ -17,7 +17,7 @@ The Web Replay Protocol is separate from the Web Replay browser itself and the f
 
 The design of the Web Replay Protocol is based on the <a href="https://chromedevtools.github.io/devtools-protocol/">Chrome DevTools Protocol</a> (which is in turn based on <a href="https://www.jsonrpc.org/specification">JSON-RPC</a>).  Connections and messages are handled in very similar ways, and when appropriate, messages and values sent over the Web Replay Protocol are structured in the same way as in the Chrome DevTools Protocol.
 
-To connect to the Web Replay cloud service, open a websocket connection to <code>wss://dispatch.webreplay.io:8000</code>.  The protocol can then be used immediately, with no authentication (this will change soon).
+To connect to the Web Replay cloud service, open a websocket connection to <code>wss://dispatch.webreplay.io</code>.  The protocol can then be used immediately, with no authentication (this will change soon).
 
 The protocol is used by sending it requests over the websocket.  Requests are stringified JSON objects with the following properties:
 
