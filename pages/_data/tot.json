@@ -470,7 +470,7 @@
                 },
                 {
                     "name": "findResumeTarget",
-                    "description": "Find the point to pause at when running forward from a point.",
+                    "description": "Find where to pause when running forward from a point.",
                     "parameters": [
                         {
                             "name": "point",
@@ -481,14 +481,14 @@
                     "returns": [
                         {
                             "name": "target",
-                            "description": "Point where execution should pause when resuming.",
+                            "description": "Point where execution should pause.",
                             "$ref": "PauseDescription"
                         }
                     ]
                 },
                 {
                     "name": "findRewindTarget",
-                    "description": "Find the point to pause at when rewinding from a point.",
+                    "description": "Find where to pause when rewinding from a point.",
                     "parameters": [
                         {
                             "name": "point",
@@ -499,8 +499,126 @@
                     "returns": [
                         {
                             "name": "target",
-                            "description": "Point where execution should pause when rewinding.",
+                            "description": "Point where execution should pause.",
                             "$ref": "PauseDescription"
+                        }
+                    ]
+                },
+                {
+                    "name": "findReverseStepOverTarget",
+                    "description": "Find where to pause when reverse-stepping from a point.",
+                    "parameters": [
+                        {
+                            "name": "point",
+                            "description": "Point to start reverse-stepping from.",
+                            "$ref": "Recording.ExecutionPoint"
+                        }
+                    ],
+                    "returns": [
+                        {
+                            "name": "target",
+                            "description": "Point where execution should pause.",
+                            "$ref": "PauseDescription"
+                        }
+                    ]
+                },
+                {
+                    "name": "findStepOverTarget",
+                    "description": "Find where to pause when stepping from a point.",
+                    "parameters": [
+                        {
+                            "name": "point",
+                            "description": "Point to start stepping from.",
+                            "$ref": "Recording.ExecutionPoint"
+                        }
+                    ],
+                    "returns": [
+                        {
+                            "name": "target",
+                            "description": "Point where execution should pause.",
+                            "$ref": "PauseDescription"
+                        }
+                    ]
+                },
+                {
+                    "name": "findStepInTarget",
+                    "description": "Find where to pause when stepping from a point and stopping at the entry of\nany encountered call.",
+                    "parameters": [
+                        {
+                            "name": "point",
+                            "description": "Point to start stepping from.",
+                            "$ref": "Recording.ExecutionPoint"
+                        }
+                    ],
+                    "returns": [
+                        {
+                            "name": "target",
+                            "description": "Point where execution should pause.",
+                            "$ref": "PauseDescription"
+                        }
+                    ]
+                },
+                {
+                    "name": "findStepOutTarget",
+                    "description": "Find where to pause when stepping out from a frame to the caller.",
+                    "parameters": [
+                        {
+                            "name": "point",
+                            "description": "Point to step out from.",
+                            "$ref": "Recording.ExecutionPoint"
+                        }
+                    ],
+                    "returns": [
+                        {
+                            "name": "target",
+                            "description": "Point where execution should pause.",
+                            "$ref": "PauseDescription"
+                        }
+                    ]
+                },
+                {
+                    "name": "blackboxScript",
+                    "description": "Blackbox a script or a region in it. Resume commands like\n<code>findResumeTarget</code> will not return execution points in\nblackboxed regions of a script.",
+                    "parameters": [
+                        {
+                            "name": "scriptId",
+                            "description": "Script to blackbox.",
+                            "$ref": "ScriptId"
+                        },
+                        {
+                            "name": "begin",
+                            "description": "If specified, earlier locations will keep their blackbox state.",
+                            "optional": true,
+                            "$ref": "ScriptLocation"
+                        },
+                        {
+                            "name": "end",
+                            "description": "If specified, later locations will keep their blackbox state.",
+                            "optional": true,
+                            "$ref": "ScriptLocation"
+                        }
+                    ]
+                },
+                {
+                    "name": "unblackboxScript",
+                    "description": "Unblackbox a script or a region in it.",
+                    "parameters": [
+                        {
+                            "name": "scriptId",
+                            "description": "Script to unblackbox.",
+                            "$ref": "ScriptId"
+                        },
+                        {
+                            "name": "begin",
+                            "description": "If specified, earlier locations will keep their blackbox state.",
+                            "optional": true,
+                            "$ref": "ScriptLocation"
+                        },
+                        {
+                            "name": "end",
+                            "description": "If specified, later locations will keep their blackbox state.",
+                            "optional": true,
+                            "$ref": "ScriptLocation"
                         }
                     ]
                 }
@@ -552,7 +670,7 @@
                     "properties": [
                         {
                             "name": "line",
-                            "description": "0-indexed line in the script's source.",
+                            "description": "1-indexed line in the script's source.",
                             "type": "integer"
                         },
                         {
@@ -599,10 +717,26 @@
                     "type": "string"
                 },
                 {
+                    "id": "PauseReason",
+                    "description": "Reasons why execution can pause when running forward or backward through\nthe recording.\n<br>\n<br><code>endpoint</code>: Ran to the beginning or end of the recording.\n<br><code>breakpoint</code>: Hit an installed breakpoint.\n<br><code>debuggerStatement</code>: Hit a debugger statement.\n<br><code>step</code>: Reached the target of a step operation.\n<br><br>",
+                    "type": "string",
+                    "enum": [
+                        "endpoint",
+                        "breakpoint",
+                        "debuggerStatement",
+                        "step"
+                    ]
+                },
+                {
                     "id": "PauseDescription",
-                    "description": "Basic description of a point where execution can pause.",
+                    "description": "Description of a point where execution can pause after running forward or\nbackward through the recording.",
                     "$ref": "Recording.TimeStampedPoint",
                     "properties": [
+                        {
+                            "name": "reason",
+                            "description": "Reason for pausing.",
+                            "$ref": "PauseReason"
+                        },
                         {
                             "name": "frame",
                             "description": "Location of the topmost frame, omitted if there are no frames on stack.",
@@ -610,6 +744,96 @@
                             "$ref": "Location"
                         }
                     ]
+                }
+            ]
+        },
+        {
+            "domain": "Console",
+            "description": "The Console domain defines methods for accessing messages reported to the console.\n\n<br><br>All commands and events in this domain must include a <code>sessionId</code>.",
+            "commands": [
+                {
+                    "name": "findMessages",
+                    "description": "Find all messages in the recording. Does not return until the recording is\nfully processed. Before returning, <code>newMessage</code> events will be\nemitted for every console message in the recording."
+                }
+            ],
+            "events": [
+                {
+                    "name": "newMessage",
+                    "description": "Describes a console message in the recording.",
+                    "parameters": [
+                        {
+                            "name": "message",
+                            "description": "Contents of the message.",
+                            "$ref": "Message"
+                        }
+                    ]
+                }
+            ],
+            "types": [
+                {
+                    "id": "Message",
+                    "description": "Contents of a console message.",
+                    "type": "object",
+                    "properties": [
+                        {
+                            "name": "source",
+                            "description": "Source of the message.",
+                            "$ref": "MessageSource"
+                        },
+                        {
+                            "name": "level",
+                            "description": "Severity level of the message.",
+                            "$ref": "MessageLevel"
+                        },
+                        {
+                            "name": "text",
+                            "description": "Any text associated with the message.",
+                            "type": "string"
+                        },
+                        {
+                            "name": "point",
+                            "description": "Point associated with the message. For messages added due to uncaught\nexceptions this is the point at which the exception was thrown. For\nother types of messages it is the point where the message was added.",
+                            "$ref": "Recording.TimeStampedPoint"
+                        },
+                        {
+                            "name": "pauseId",
+                            "description": "Pause ID associated with the message arguments and stack.",
+                            "$ref": "Pause.PauseId"
+                        },
+                        {
+                            "name": "argumentValues",
+                            "description": "Any arguments to the message.",
+                            "optional": true,
+                            "type": "array",
+                            "items": {
+                                "$ref": "Pause.Value"
+                            }
+                        },
+                        {
+                            "name": "stack",
+                            "description": "Stack contents, omitted if there are no frames on the stack\nat the message's point.",
+                            "optional": true,
+                            "type": "array",
+                            "items": {
+                                "$ref": "Pause.FrameId"
+                            }
+                        },
+                        {
+                            "name": "data",
+                            "description": "Data describing the message arguments and frames on the stack.",
+                            "$ref": "Pause.PauseData"
+                        }
+                    ]
+                },
+                {
+                    "id": "MessageSource",
+                    "description": "Possible sources from which a message can originate.",
+                    "type": "string"
+                },
+                {
+                    "id": "MessageLevel",
+                    "description": "Severity level of a message.",
+                    "type": "string"
                 }
             ]
         },
@@ -649,16 +873,34 @@
                             "type": "any"
                         },
                         {
-                            "name": "unserializable",
-                            "description": "For non-object values that are not valid JSON values.",
-                            "optional": true,
-                            "$ref": "UnserializableValue"
-                        },
-                        {
                             "name": "object",
                             "description": "For object values.",
                             "optional": true,
                             "$ref": "ObjectId"
+                        },
+                        {
+                            "name": "unserializableNumber",
+                            "description": "String representation of a number that is not a valid JSON value:\n<code>-0</code>, <code>Infinity</code>, <code>-Infinity</code>,\nand <code>NaN</code>.",
+                            "optional": true,
+                            "type": "string"
+                        },
+                        {
+                            "name": "bigint",
+                            "description": "String representation of a bigint.",
+                            "optional": true,
+                            "type": "string"
+                        },
+                        {
+                            "name": "uninitialized",
+                            "description": "Set for values of variables which haven't been initialized yet.",
+                            "optional": true,
+                            "type": "boolean"
+                        },
+                        {
+                            "name": "unavailable",
+                            "description": "Set for values which are not available for some reason.",
+                            "optional": true,
+                            "type": "boolean"
                         }
                     ]
                 },
@@ -690,13 +932,19 @@
                         },
                         {
                             "name": "functionName",
-                            "description": "For call frames, the name of the function being called.",
+                            "description": "For call frames, the name of the function being called.\nOmitted if the function has no name.",
                             "optional": true,
                             "type": "string"
                         },
                         {
+                            "name": "functionLocation",
+                            "description": "For call frames, the location of the function being called.",
+                            "optional": true,
+                            "$ref": "Debugger.Location"
+                        },
+                        {
                             "name": "location",
-                            "description": "Location in the source of where this frame is paused at.",
+                            "description": "Location in the source where this frame is paused at.",
                             "$ref": "Debugger.Location"
                         },
                         {
@@ -897,11 +1145,6 @@
                     ]
                 },
                 {
-                    "id": "UnserializableValue",
-                    "description": "String representation of a defined value that is not a valid JSON value:\n<code>-0</code>, <code>Infinity</code>, <code>-Infinity</code>,\n<code>NaN</code>, and BigInts.",
-                    "type": "string"
-                },
-                {
                     "id": "PauseData",
                     "description": "Block of data from this pause which might be useful to the protocol client.\nTo reduce the number of back-and-forth calls required over the protocol,\ndata which wasn't specifically asked for can be returned by commands or\nevents. <code>PauseData</code> objects will not duplicate data from a\n<code>PauseData</code> object produced earlier for the same pause.",
                     "type": "object",
@@ -963,6 +1206,12 @@
                             "$ref": "Value"
                         },
                         {
+                            "name": "failed",
+                            "description": "Set if execution failed and no value was returned or thrown.\nThis can happen if the evaluation interacts with the system in\nan unsupported way (such as by calling <code>window.alert</code>)\nor if the evaluation took too long and was forcibly terminated.",
+                            "optional": true,
+                            "type": "boolean"
+                        },
+                        {
                             "name": "data",
                             "description": "Any additional data associated with the returned/thrown value.",
                             "$ref": "PauseData"
@@ -993,8 +1242,8 @@
                     ]
                 },
                 {
-                    "name": "getFrameParameters",
-                    "description": "Get the names and values of a frame's formal parameters.",
+                    "name": "getFrameArguments",
+                    "description": "Get the values of a frame's arguments.",
                     "parameters": [
                         {
                             "name": "frameId",
@@ -1004,11 +1253,12 @@
                     ],
                     "returns": [
                         {
-                            "name": "parameters",
-                            "description": "Names and current values of each of the frame's formal parameters,\nin order.",
+                            "name": "argumentValues",
+                            "description": "Current values of each of the frame's arguments. Omitted for non-call frames.",
+                            "optional": true,
                             "type": "array",
                             "items": {
-                                "$ref": "NamedValue"
+                                "$ref": "Value"
                             }
                         }
                     ]
@@ -1032,29 +1282,37 @@
                         {
                             "name": "sessionId",
                             "description": "Associated session ID for the current execution point.",
-                            "$ref": "SessionId"
+                            "$ref": "Session.SessionId"
                         },
                         {
                             "name": "pauseId",
                             "description": "Pause ID created for the current execution point.",
-                            "$ref": "PauseId"
+                            "$ref": "Pause.PauseId"
                         }
                     ]
                 },
                 {
+                    "id": "AnalysisKey",
+                    "description": "Key for an analysis result. This can be any JSON value. Keys are equivalent\nif they are structurally equivalent: they have the same contents, though\nobject keys may be ordered differently when stringified.",
+                    "type": "any"
+                },
+                {
+                    "id": "AnalysisValue",
+                    "description": "Value for an analysis result. This can be any JSON value.",
+                    "type": "any"
+                },
+                {
                     "id": "AnalysisEntry",
-                    "description": "Result of a map or reduce operation.",
+                    "description": "A key/value pair produced by an analysis.",
                     "type": "object",
                     "properties": [
                         {
                             "name": "key",
-                            "description": "Key for the entry. This can be any JSON value. Keys are equivalent if they\nare structurally equivalent: they have the same contents, though object\nkeys may be ordered differently when stringified.",
-                            "type": "any"
+                            "$ref": "AnalysisKey"
                         },
                         {
                             "name": "value",
-                            "description": "Value for the entry. This can be any JSON value.",
-                            "type": "any"
+                            "$ref": "AnalysisValue"
                         }
                     ]
                 }
@@ -1066,12 +1324,12 @@
                     "parameters": [
                         {
                             "name": "mapper",
-                            "description": "Body of the mapper function. The mapper function takes two arguments:\n<code>input</code> is a <code>MapInput</code> object, and\n<code>sendCommand</code> is a function that can be passed a command\nname and parameters (in that order) and synchronously returns the\ncommand result. Only methods from the <code>Pause</code> domain may\nbe used with <code>sendCommand</code>. The mapper function must\n<code>return</code> an array of <code>AnalysisEntry</code> objects.",
+                            "description": "Body of the mapper function. The mapper function takes two arguments:\n<code>input</code> is a <code>MapInput</code> object, and\n<code>sendCommand</code> is a function that can be passed a command\nname and parameters (in that order) and synchronously returns the\ncommand result. Only methods from the <code>Pause</code> domain may\nbe used with <code>sendCommand</code>. The mapper function must\nreturn an array of <code>AnalysisEntry</code> objects.",
                             "type": "string"
                         },
                         {
                             "name": "reducer",
-                            "description": "Body of the reducer function. The reducer function takes two arguments:\n<code>key</code> is an <code>AnalysisEntry</code> key, and <code>values</code>\nis an array of <code>AnalysisEntry</code> values. All the input values\nwere associated with the key by an earlier call to <code>mapper</code>\n<strong>or</strong> <code>reducer</code>. The reducer function must\nreturn a single <code>AnalysisEntry</code> value, which summarizes all\nthe input values and will be associated with <code>key</code> for\n<code>analysisResult</code> events or further calls to the reducer.\nThe reducer may be omitted if no reduction phase is needed.",
+                            "description": "Body of the reducer function. The reducer function takes two arguments:\n<code>key</code> is an <code>AnalysisKey</code>, and <code>values</code>\nis an array of <code>AnalysisValue</code>. All the values\nwere associated with the key by an earlier call to <code>mapper</code>\n<strong>or</strong> <code>reducer</code>. The reducer function must\nreturn an <code>AnalysisValue</code>, which summarizes all\nthe input values and will be associated with <code>key</code> for\n<code>analysisResult</code> events or further calls to the reducer.\nThe reducer may be omitted if no reduction phase is needed.",
                             "optional": true,
                             "type": "string"
                         },
@@ -1101,7 +1359,7 @@
                         {
                             "name": "sessionId",
                             "description": "Session containing the script.",
-                            "$ref": "SessionId"
+                            "$ref": "Session.SessionId"
                         },
                         {
                             "name": "location",
@@ -1112,7 +1370,7 @@
                 },
                 {
                     "name": "addFunctionEntryPoints",
-                    "description": "Apply the analysis to every function entry point in a session.",
+                    "description": "Apply the analysis to every function entry point in a region of a script.",
                     "parameters": [
                         {
                             "name": "analysisId",
@@ -1122,22 +1380,30 @@
                         {
                             "name": "sessionId",
                             "description": "Associated session.",
-                            "$ref": "SessionId"
+                            "$ref": "Session.SessionId"
                         },
                         {
-                            "name": "scriptIds",
-                            "description": "Set of scripts to apply the analysis to function entry points in.\nThis can be omitted to apply the analysis to every function entry point\nin the session's recording.",
+                            "name": "scriptId",
+                            "description": "Script to look for function entry points in.",
+                            "$ref": "Debugger.ScriptId"
+                        },
+                        {
+                            "name": "begin",
+                            "description": "If specified, earlier functions will be excluded.",
                             "optional": true,
-                            "type": "array",
-                            "items": {
-                                "$ref": "Debugger.ScriptId"
-                            }
+                            "$ref": "Debugger.ScriptLocation"
+                        },
+                        {
+                            "name": "end",
+                            "description": "If specified, later functions will be excluded.",
+                            "optional": true,
+                            "$ref": "Debugger.ScriptLocation"
                         }
                     ]
                 },
                 {
                     "name": "runAnalysis",
-                    "description": "Run the analysis. After this is called, <code>analysisResult</code> events\nwill be emitted as results are gathered. Does not return until the analysis\nhas finished and all events have been emitted.",
+                    "description": "Run the analysis. After this is called, <code>analysisResult</code> and/or\n<code>analysisError</code> events will be emitted as results are gathered.\nDoes not return until the analysis has finished and all events have been\nemitted.",
                     "parameters": [
                         {
                             "name": "analysisId",
@@ -1164,6 +1430,22 @@
                             "items": {
                                 "$ref": "AnalysisEntry"
                             }
+                        }
+                    ]
+                },
+                {
+                    "name": "analysisError",
+                    "description": "Describes an error that occurred when running an analysis mapper or reducer\nfunction. This will not be emitted for every error, but if there was any\nerror then at least one event will be emitted.",
+                    "parameters": [
+                        {
+                            "name": "analysisId",
+                            "description": "Associated analysis.",
+                            "$ref": "AnalysisId"
+                        },
+                        {
+                            "name": "error",
+                            "description": "Description of the error.",
+                            "type": "string"
                         }
                     ]
                 }
