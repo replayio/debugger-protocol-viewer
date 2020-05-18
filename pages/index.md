@@ -5,7 +5,7 @@ version: tot
 ---
 The <b>Web Replay Protocol</b> is used by tools to upload and inspect <a href="https://webreplay.io">Web Replay</a> recordings.
 
-This protocol is preliminary and will change substantially over time.  Join the #protocol channel in our <a href="https://join.slack.com/t/webreplay/shared_invite/enQtOTgwOTI3MTQ3NTg4LTA3MTQ4ZWMwMzYwMWI4MzFhYjkyMDZhMjU4YmE0MDgxYTI5YTYxMmZiMzJiOTlkMDcwZGEyOTAyNjc2MGFmYTg">Slack</a> community for news and discussions.
+This protocol is preliminary and will grow substantially over time.  Join the #protocol channel in our <a href="https://join.slack.com/t/webreplay/shared_invite/enQtOTgwOTI3MTQ3NTg4LTA3MTQ4ZWMwMzYwMWI4MzFhYjkyMDZhMjU4YmE0MDgxYTI5YTYxMmZiMzJiOTlkMDcwZGEyOTAyNjc2MGFmYTg">Slack</a> community for news and discussions.
 
 <h3>Web Replay</h3>
 
