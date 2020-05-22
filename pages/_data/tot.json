@@ -728,20 +728,27 @@
                     ]
                 },
                 {
-                    "id": "PauseDescription",
-                    "description": "Description of a point where execution can pause after running forward or\nbackward through the recording.",
+                    "id": "PointDescription",
+                    "description": "Description of an execution point.",
                     "$ref": "Recording.TimeStampedPoint",
                     "properties": [
-                        {
-                            "name": "reason",
-                            "description": "Reason for pausing.",
-                            "$ref": "PauseReason"
-                        },
                         {
                             "name": "frame",
                             "description": "Location of the topmost frame, omitted if there are no frames on stack.",
                             "optional": true,
                             "$ref": "Location"
+                        }
+                    ]
+                },
+                {
+                    "id": "PauseDescription",
+                    "description": "Description of a point where execution can pause after running forward or\nbackward through the recording.",
+                    "$ref": "PointDescription",
+                    "properties": [
+                        {
+                            "name": "reason",
+                            "description": "Reason for pausing.",
+                            "$ref": "PauseReason"
                         }
                     ]
                 }
@@ -791,6 +798,24 @@
                             "type": "string"
                         },
                         {
+                            "name": "url",
+                            "description": "Any URL associated with the message.",
+                            "optional": true,
+                            "type": "string"
+                        },
+                        {
+                            "name": "line",
+                            "description": "Any 1-indexed line number associated with the message.",
+                            "optional": true,
+                            "type": "integer"
+                        },
+                        {
+                            "name": "column",
+                            "description": "Any 0-indexed column number associated with the message.",
+                            "optional": true,
+                            "type": "integer"
+                        },
+                        {
                             "name": "point",
                             "description": "Point associated with the message. For messages added due to uncaught\nexceptions this is the point at which the exception was thrown. For\nother types of messages it is the point where the message was added.",
                             "$ref": "Recording.TimeStampedPoint"
@@ -828,12 +853,21 @@
                 {
                     "id": "MessageSource",
                     "description": "Possible sources from which a message can originate.",
-                    "type": "string"
+                    "type": "string",
+                    "enum": [
+                        "PageError",
+                        "ConsoleAPI"
+                    ]
                 },
                 {
                     "id": "MessageLevel",
                     "description": "Severity level of a message.",
-                    "type": "string"
+                    "type": "string",
+                    "enum": [
+                        "info",
+                        "warning",
+                        "error"
+                    ]
                 }
             ]
         },
@@ -1044,14 +1078,8 @@
                             "$ref": "ObjectId"
                         },
                         {
-                            "name": "description",
-                            "description": "String representation of the object, if available.",
-                            "optional": true,
-                            "type": "string"
-                        },
-                        {
                             "name": "preview",
-                            "description": "Any preview data available for the object's properties.",
+                            "description": "Any preview data available for the object's contents.",
                             "optional": true,
                             "$ref": "ObjectPreview"
                         }
@@ -1060,7 +1088,7 @@
                 {
                     "id": "ObjectPreview",
                     "description": "Description of some or all of an object's contents.",
-                    "$ref": "Object",
+                    "type": "object",
                     "properties": [
                         {
                             "name": "overflow",
@@ -1093,6 +1121,51 @@
                             "items": {
                                 "$ref": "NamedValue"
                             }
+                        },
+                        {
+                            "name": "containerEntryCount",
+                            "description": "For container objects, the number of entries in the container.",
+                            "optional": true,
+                            "type": "integer"
+                        },
+                        {
+                            "name": "regexpString",
+                            "description": "For RegExp objects, the string representation.",
+                            "optional": true,
+                            "type": "string"
+                        },
+                        {
+                            "name": "dateTime",
+                            "description": "For Date objects, the result of calling <code>getTime()</code>.",
+                            "optional": true,
+                            "type": "integer"
+                        },
+                        {
+                            "name": "functionName",
+                            "description": "For Function objects, the name of the function.\nOmitted for functions with no name.",
+                            "optional": true,
+                            "type": "string"
+                        },
+                        {
+                            "name": "functionParameterNames",
+                            "description": "For Function objects, the names of the parameters.",
+                            "optional": true,
+                            "type": "array",
+                            "items": {
+                                "type": "string"
+                            }
+                        },
+                        {
+                            "name": "functionLocation",
+                            "description": "For scripted Function objects, the location of the function.",
+                            "optional": true,
+                            "$ref": "Debugger.Location"
+                        },
+                        {
+                            "name": "node",
+                            "description": "For DOM Node objects, information about the node.",
+                            "optional": true,
+                            "$ref": "DOM.Node"
                         }
                     ]
                 },
@@ -1129,7 +1202,7 @@
                 {
                     "id": "ContainerEntry",
                     "description": "An entry in a container object (maps, sets, weak maps, and weak sets).",
-                    "$ref": "Object",
+                    "type": "object",
                     "properties": [
                         {
                             "name": "key",
@@ -1174,6 +1247,36 @@
                             }
                         }
                     ]
+                },
+                {
+                    "id": "Result",
+                    "description": "Result of performing an effectful operation.",
+                    "type": "object",
+                    "properties": [
+                        {
+                            "name": "returned",
+                            "description": "If the operation returned normally, the returned value.",
+                            "optional": true,
+                            "$ref": "Value"
+                        },
+                        {
+                            "name": "exception",
+                            "description": "If the operation threw an exception, the thrown value.",
+                            "optional": true,
+                            "$ref": "Value"
+                        },
+                        {
+                            "name": "failed",
+                            "description": "Set if the operation failed and no value was returned or thrown.\nThis can happen when operations interact with the system in an\nunsupported way (such as by calling <code>dump()</code>)\nor if the evaluation took too long and was forcibly terminated.",
+                            "optional": true,
+                            "type": "boolean"
+                        },
+                        {
+                            "name": "data",
+                            "description": "Any additional data associated with the returned/thrown value.",
+                            "$ref": "PauseData"
+                        }
+                    ]
                 }
             ],
             "commands": [
@@ -1190,31 +1293,45 @@
                             "name": "expression",
                             "description": "Expression to evaluate.",
                             "type": "string"
+                        },
+                        {
+                            "name": "bindings",
+                            "description": "Any extra bindings to add to the evaluation's scope.",
+                            "optional": true,
+                            "type": "array",
+                            "items": {
+                                "$ref": "NamedValue"
+                            }
                         }
                     ],
                     "returns": [
                         {
                             "name": "result",
-                            "description": "If execution returned normally, the evaluation result.",
-                            "optional": true,
-                            "$ref": "Value"
+                            "description": "Result of the evaluation.",
+                            "$ref": "Result"
+                        }
+                    ]
+                },
+                {
+                    "name": "getObjectProperty",
+                    "description": "Read a property from an object.",
+                    "parameters": [
+                        {
+                            "name": "object",
+                            "description": "Object to get the property from.",
+                            "$ref": "ObjectId"
                         },
                         {
-                            "name": "exception",
-                            "description": "If execution threw an exception, the thrown value.",
-                            "optional": true,
-                            "$ref": "Value"
-                        },
+                            "name": "name",
+                            "description": "Property to get.",
+                            "type": "string"
+                        }
+                    ],
+                    "returns": [
                         {
-                            "name": "failed",
-                            "description": "Set if execution failed and no value was returned or thrown.\nThis can happen if the evaluation interacts with the system in\nan unsupported way (such as by calling <code>window.alert</code>)\nor if the evaluation took too long and was forcibly terminated.",
-                            "optional": true,
-                            "type": "boolean"
-                        },
-                        {
-                            "name": "data",
-                            "description": "Any additional data associated with the returned/thrown value.",
-                            "$ref": "PauseData"
+                            "name": "result",
+                            "description": "Result of getting the property.",
+                            "$ref": "Result"
                         }
                     ]
                 },
@@ -1261,6 +1378,76 @@
                                 "$ref": "Value"
                             }
                         }
+                    ]
+                }
+            ]
+        },
+        {
+            "domain": "DOM",
+            "description": "The DOM domain is used to inspect the DOM at particular execution points.\nInspecting the DOM requires a <code>Pause.PauseId</code>, and all DOM nodes\nare identified by a <code>Pause.ObjectId</code>.\n\n<br><br>All commands and events in this domain must include both a <code>sessionId</code>\nand a <code>pauseId</code>.",
+            "types": [
+                {
+                    "id": "Node",
+                    "description": "Description of a node's contents.",
+                    "type": "object",
+                    "properties": [
+                        {
+                            "name": "nodeType",
+                            "description": "Value of <code>node.nodeType</code>.",
+                            "type": "integer"
+                        },
+                        {
+                            "name": "nodeName",
+                            "description": "Value of <code>node.nodeName</code>.",
+                            "type": "string"
+                        },
+                        {
+                            "name": "isConnected",
+                            "description": "Value of <code>node.isConnected</code>.",
+                            "type": "boolean"
+                        },
+                        {
+                            "name": "attributes",
+                            "description": "For element nodes, the attributes.",
+                            "optional": true,
+                            "type": "array",
+                            "items": {
+                                "$ref": "Attr"
+                            }
+                        },
+                        {
+                            "name": "pseudoType",
+                            "description": "For pseudo elements, the pseudo type.",
+                            "optional": true,
+                            "$ref": "PseudoType"
+                        }
+                    ]
+                },
+                {
+                    "id": "Attr",
+                    "description": "Description of an element attribute.",
+                    "type": "object",
+                    "properties": [
+                        {
+                            "name": "name",
+                            "description": "Value of <code>attr.name</code>.",
+                            "type": "string"
+                        },
+                        {
+                            "name": "value",
+                            "description": "Value of <code>attr.value</code>.",
+                            "type": "string"
+                        }
+                    ]
+                },
+                {
+                    "id": "PseudoType",
+                    "description": "Type of a pseudo element.",
+                    "type": "string",
+                    "enum": [
+                        "before",
+                        "after",
+                        "marker"
                     ]
                 }
             ]
@@ -1335,7 +1522,7 @@
                         },
                         {
                             "name": "effectful",
-                            "description": "Whether effectful commands in the <code>Pause</code> domain might be\nsent by the mapper function. An analysis which does not use effectful\ncommands will run more efficiently. Effectful commands are\n<code>Pause.evaluateInFrame</code>.",
+                            "description": "Whether effectful commands in the <code>Pause</code> domain might be\nsent by the mapper function. An analysis which does not use effectful\ncommands will run more efficiently. Effectful commands are\n<code>Pause.evaluateInFrame</code>, and <code>Pause.getObjectProperty</code>.",
                             "type": "boolean"
                         }
                     ],
@@ -1411,6 +1598,28 @@
                             "$ref": "AnalysisId"
                         }
                     ]
+                },
+                {
+                    "name": "releaseAnalysis",
+                    "description": "Release an analysis and its server side resources. If the analysis is\nrunning, it will be canceled, preventing further <code>analysisResult</code>\nand <code>analysisError</code> events from being emitted.",
+                    "parameters": [
+                        {
+                            "name": "analysisId",
+                            "description": "Analysis to release.",
+                            "$ref": "AnalysisId"
+                        }
+                    ]
+                },
+                {
+                    "name": "findAnalysisPoints",
+                    "description": "Find the set of execution points at which an analysis will run. After this\nis called, <code>analysisPoints</code> events will be emitted as the points\nare found. Does not return until events for all points have been emitted.\nCan only be used after the analysis has started running.",
+                    "parameters": [
+                        {
+                            "name": "analysisId",
+                            "description": "Analysis to find points for.",
+                            "$ref": "AnalysisId"
+                        }
+                    ]
                 }
             ],
             "events": [
@@ -1446,6 +1655,25 @@
                             "name": "error",
                             "description": "Description of the error.",
                             "type": "string"
+                        }
+                    ]
+                },
+                {
+                    "name": "analysisPoints",
+                    "description": "Describes some points at which an analysis will run.",
+                    "parameters": [
+                        {
+                            "name": "analysisId",
+                            "description": "Associated analysis.",
+                            "$ref": "AnalysisId"
+                        },
+                        {
+                            "name": "points",
+                            "description": "Some points at which the analysis will run.",
+                            "type": "array",
+                            "items": {
+                                "$ref": "Debugger.PointDescription"
+                            }
                         }
                     ]
                 }
