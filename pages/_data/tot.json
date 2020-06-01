@@ -108,6 +108,11 @@
                             "$ref": "TimeStamp"
                         },
                         {
+                            "name": "length",
+                            "description": "Byte length of the recording.",
+                            "type": "integer"
+                        },
+                        {
                             "name": "lastScreen",
                             "description": "Painted graphics at the end of the recording.",
                             "optional": true,
@@ -117,7 +122,7 @@
                 },
                 {
                     "name": "createSession",
-                    "description": "Create a session for inspecting a recording.",
+                    "description": "Create a session for inspecting a recording. This command does not return\nuntil the recording's description and contents have been fully received.\nIf the description/contents are incomplete, <code>uploadedData</code> events\nwill be periodically emitted before the command returns.",
                     "parameters": [
                         {
                             "name": "recordingId",
@@ -141,6 +146,24 @@
                             "name": "sessionId",
                             "description": "Session to release.",
                             "$ref": "Session.SessionId"
+                        }
+                    ]
+                }
+            ],
+            "events": [
+                {
+                    "name": "uploadedData",
+                    "description": "Describes how much of a recording's data has been uploaded to the cloud service.",
+                    "parameters": [
+                        {
+                            "name": "recordingId",
+                            "description": "Recording being described.",
+                            "$ref": "RecordingId"
+                        },
+                        {
+                            "name": "byteCount",
+                            "description": "How many bytes of recording data have been received by the cloud service.",
+                            "type": "integer"
                         }
                     ]
                 }
@@ -1072,12 +1095,6 @@
                             "type": "string"
                         },
                         {
-                            "name": "prototypeId",
-                            "description": "ID of the prototype, if there is one.",
-                            "optional": true,
-                            "$ref": "ObjectId"
-                        },
-                        {
                             "name": "preview",
                             "description": "Any preview data available for the object's contents.",
                             "optional": true,
@@ -1094,6 +1111,12 @@
                             "name": "overflow",
                             "description": "Whether there are additional contents not in this preview.",
                             "type": "boolean"
+                        },
+                        {
+                            "name": "prototypeId",
+                            "description": "ID of the prototype, if there is one.",
+                            "optional": true,
+                            "$ref": "ObjectId"
                         },
                         {
                             "name": "properties",
@@ -1166,6 +1189,24 @@
                             "description": "For DOM Node objects, information about the node.",
                             "optional": true,
                             "$ref": "DOM.Node"
+                        },
+                        {
+                            "name": "rule",
+                            "description": "For CSSRule objects, information about the rule.",
+                            "optional": true,
+                            "$ref": "CSS.Rule"
+                        },
+                        {
+                            "name": "style",
+                            "description": "For CSSStyleDeclaration objects, information about the style.",
+                            "optional": true,
+                            "$ref": "CSS.StyleDeclaration"
+                        },
+                        {
+                            "name": "styleSheet",
+                            "description": "For StyleSheet objects, information about the style sheet.",
+                            "optional": true,
+                            "$ref": "CSS.StyleSheet"
                         }
                     ]
                 },
@@ -1313,6 +1354,33 @@
                     ]
                 },
                 {
+                    "name": "evaluateInGlobal",
+                    "description": "Evaluate an expression in a global context.",
+                    "parameters": [
+                        {
+                            "name": "expression",
+                            "description": "Expression to evaluate.",
+                            "type": "string"
+                        },
+                        {
+                            "name": "bindings",
+                            "description": "Any extra bindings to add to the evaluation's scope.",
+                            "optional": true,
+                            "type": "array",
+                            "items": {
+                                "$ref": "NamedValue"
+                            }
+                        }
+                    ],
+                    "returns": [
+                        {
+                            "name": "result",
+                            "description": "Result of the evaluation.",
+                            "$ref": "Result"
+                        }
+                    ]
+                },
+                {
                     "name": "getObjectProperty",
                     "description": "Read a property from an object.",
                     "parameters": [
@@ -1332,6 +1400,42 @@
                             "name": "result",
                             "description": "Result of getting the property.",
                             "$ref": "Result"
+                        }
+                    ]
+                },
+                {
+                    "name": "getObjectPreview",
+                    "description": "Load a complete preview for an object.",
+                    "parameters": [
+                        {
+                            "name": "object",
+                            "description": "Object to load the preview for.",
+                            "$ref": "ObjectId"
+                        }
+                    ],
+                    "returns": [
+                        {
+                            "name": "data",
+                            "description": "Returned data. This includes a preview for the object which does not\nhave <code>overflow</code> set, and additional data for objects which\nit references.",
+                            "$ref": "PauseData"
+                        }
+                    ]
+                },
+                {
+                    "name": "getScope",
+                    "description": "Load a scope's contents.",
+                    "parameters": [
+                        {
+                            "name": "scope",
+                            "description": "Scope to load.",
+                            "$ref": "ScopeId"
+                        }
+                    ],
+                    "returns": [
+                        {
+                            "name": "data",
+                            "description": "Returned data. This includes the scope's contents, and additional data\nfor objects which it references.",
+                            "$ref": "PauseData"
                         }
                     ]
                 },
@@ -1379,16 +1483,173 @@
                             }
                         }
                     ]
+                },
+                {
+                    "name": "getFrameSteps",
+                    "description": "Get the points of all steps that are executed by a frame.",
+                    "parameters": [
+                        {
+                            "name": "frameId",
+                            "description": "Frame to get steps for.",
+                            "$ref": "FrameId"
+                        }
+                    ],
+                    "returns": [
+                        {
+                            "name": "steps",
+                            "description": "Execution points for all steps which the frame executes. In the case of\nasync/generator frames, only steps that are executed while the current\nframe is on the stack are included: steps in the same logical frame that\nthat are separated from the current point by an <code>await</code> or\n<code>yield</code> are excluded.",
+                            "type": "array",
+                            "items": {
+                                "$ref": "Debugger.PointDescription"
+                            }
+                        }
+                    ]
                 }
             ]
         },
         {
             "domain": "DOM",
-            "description": "The DOM domain is used to inspect the DOM at particular execution points.\nInspecting the DOM requires a <code>Pause.PauseId</code>, and all DOM nodes\nare identified by a <code>Pause.ObjectId</code>.\n\n<br><br>All commands and events in this domain must include both a <code>sessionId</code>\nand a <code>pauseId</code>.",
+            "description": "The DOM domain is used to inspect the DOM at particular execution points.\nInspecting the DOM requires a <code>Pause.PauseId</code>, and DOM nodes\nare identified by a <code>Pause.ObjectId</code>.\n\n<br><br>All commands and events in this domain must include both a <code>sessionId</code>\nand a <code>pauseId</code>.",
+            "commands": [
+                {
+                    "name": "getDocument",
+                    "description": "Get the page's root document.",
+                    "returns": [
+                        {
+                            "name": "document",
+                            "description": "ID for the document.",
+                            "$ref": "Pause.ObjectId"
+                        },
+                        {
+                            "name": "data",
+                            "description": "Information about the document and related nodes.",
+                            "$ref": "Pause.PauseData"
+                        }
+                    ]
+                },
+                {
+                    "name": "querySelector",
+                    "description": "Call querySelector() on a node in the page.",
+                    "parameters": [
+                        {
+                            "name": "node",
+                            "description": "Base node for the query.",
+                            "$ref": "Pause.ObjectId"
+                        },
+                        {
+                            "name": "selector",
+                            "description": "Selector to query.",
+                            "type": "string"
+                        }
+                    ],
+                    "returns": [
+                        {
+                            "name": "result",
+                            "description": "ID of the found node, omitted if none was found.",
+                            "optional": true,
+                            "$ref": "Pause.ObjectId"
+                        },
+                        {
+                            "name": "data",
+                            "description": "Information about the returned node and related nodes.",
+                            "$ref": "Pause.PauseData"
+                        }
+                    ]
+                },
+                {
+                    "name": "getEventListeners",
+                    "description": "Get the event listeners attached to a node in the page.",
+                    "parameters": [
+                        {
+                            "name": "node",
+                            "description": "Node to get listeners for.",
+                            "$ref": "Pause.ObjectId"
+                        }
+                    ],
+                    "returns": [
+                        {
+                            "name": "listeners",
+                            "description": "All event listeners for the node.",
+                            "type": "array",
+                            "items": {
+                                "$ref": "EventListener"
+                            }
+                        },
+                        {
+                            "name": "data",
+                            "description": "Additional information about the event listeners.",
+                            "$ref": "Pause.PauseData"
+                        }
+                    ]
+                },
+                {
+                    "name": "getBoxModel",
+                    "description": "Get boxes for a node.",
+                    "parameters": [
+                        {
+                            "name": "node",
+                            "description": "Node to get boxes for.",
+                            "$ref": "Pause.ObjectId"
+                        }
+                    ],
+                    "returns": [
+                        {
+                            "name": "model",
+                            "description": "Box model data for the node.",
+                            "$ref": "BoxModel"
+                        }
+                    ]
+                },
+                {
+                    "name": "getBoundingClientRect",
+                    "description": "Get the bounding client rect for a node.",
+                    "parameters": [
+                        {
+                            "name": "node",
+                            "description": "Node to get the bounds for.",
+                            "$ref": "Pause.ObjectId"
+                        }
+                    ],
+                    "returns": [
+                        {
+                            "name": "rect",
+                            "description": "Bounding client rect for the node.",
+                            "$ref": "Rect"
+                        }
+                    ]
+                }
+            ],
             "types": [
                 {
+                    "id": "EventListener",
+                    "description": "Description of an event listener on a page.",
+                    "type": "object",
+                    "properties": [
+                        {
+                            "name": "node",
+                            "description": "Node the listener is attached to.",
+                            "$ref": "Pause.ObjectId"
+                        },
+                        {
+                            "name": "handler",
+                            "description": "Handler function associated with the listener.",
+                            "$ref": "Pause.ObjectId"
+                        },
+                        {
+                            "name": "type",
+                            "description": "Event being listened for.",
+                            "type": "string"
+                        },
+                        {
+                            "name": "capture",
+                            "description": "Whether the listener captures events.",
+                            "type": "boolean"
+                        }
+                    ]
+                },
+                {
                     "id": "Node",
-                    "description": "Description of a node's contents.",
+                    "description": "Description of a node's contents which is attached to its\nassociated <code>Pause.ObjectPreview.node</code>.",
                     "type": "object",
                     "properties": [
                         {
@@ -1399,6 +1660,12 @@
                         {
                             "name": "nodeName",
                             "description": "Value of <code>node.nodeName</code>.",
+                            "type": "string"
+                        },
+                        {
+                            "name": "nodeValue",
+                            "description": "Value of <code>node.nodeValue</code>.",
+                            "optional": true,
                             "type": "string"
                         },
                         {
@@ -1420,6 +1687,27 @@
                             "description": "For pseudo elements, the pseudo type.",
                             "optional": true,
                             "$ref": "PseudoType"
+                        },
+                        {
+                            "name": "style",
+                            "description": "For element nodes, ID of any inline style declaration.",
+                            "optional": true,
+                            "$ref": "Pause.ObjectId"
+                        },
+                        {
+                            "name": "parentNode",
+                            "description": "ID of any <code>node.parentNode</code>.",
+                            "optional": true,
+                            "$ref": "Pause.ObjectId"
+                        },
+                        {
+                            "name": "childNodes",
+                            "description": "IDs of all <code>node.childNodes</code>.",
+                            "optional": true,
+                            "type": "array",
+                            "items": {
+                                "$ref": "Pause.ObjectId"
+                            }
                         }
                     ]
                 },
@@ -1448,6 +1736,222 @@
                         "before",
                         "after",
                         "marker"
+                    ]
+                },
+                {
+                    "id": "BoxModel",
+                    "description": "Description of the box model for a node.",
+                    "type": "object",
+                    "properties": [
+                        {
+                            "name": "node",
+                            "description": "Node this is the box model for.",
+                            "$ref": "Pause.ObjectId"
+                        },
+                        {
+                            "name": "content",
+                            "description": "Quads holding the node's content.",
+                            "$ref": "Quads"
+                        },
+                        {
+                            "name": "padding",
+                            "description": "Quads including the content and any padding between the border.",
+                            "$ref": "Quads"
+                        },
+                        {
+                            "name": "border",
+                            "description": "Quads including the border.",
+                            "$ref": "Quads"
+                        },
+                        {
+                            "name": "margin",
+                            "description": "Quads including the border and any margin between other nodes.",
+                            "$ref": "Quads"
+                        }
+                    ]
+                },
+                {
+                    "id": "Quads",
+                    "description": "Compact representation of an array of DOMQuads, projected onto the <code>x/y</code>\nplane (i.e. <code>z</code> and <code>w</code> values in points are ignored).\nEach quad is 8 elements, with the <code>x</code> and <code>y</code> coordinates\nof the four points in the quad. The entire array will have a length that is a\nmultiple of 8.",
+                    "type": "array",
+                    "items": {
+                        "type": "number"
+                    }
+                },
+                {
+                    "id": "Rect",
+                    "description": "Compact representation of a DOMRect. A rect has four elements, listing the\nrect's <code>left</code>, <code>top</code>, <code>right</code>, and\n<code>bottom</code> values in order.",
+                    "type": "array",
+                    "items": {
+                        "type": "number"
+                    }
+                }
+            ]
+        },
+        {
+            "domain": "CSS",
+            "description": "The CSS domain is used to inspect the CSS state at particular execution points.\n\n<br><br>All commands and events in this domain must include both a <code>sessionId</code>\nand a <code>pauseId</code>.",
+            "commands": [
+                {
+                    "name": "getComputedStyle",
+                    "description": "Get the styles computed for a node.",
+                    "parameters": [
+                        {
+                            "name": "node",
+                            "$ref": "Pause.ObjectId"
+                        }
+                    ],
+                    "returns": [
+                        {
+                            "name": "computedStyle",
+                            "type": "array",
+                            "items": {
+                                "$ref": "ComputedStyleProperty"
+                            }
+                        }
+                    ]
+                },
+                {
+                    "name": "getAppliedRules",
+                    "description": "Get the style rules being applied to a node.",
+                    "parameters": [
+                        {
+                            "name": "node",
+                            "$ref": "Pause.ObjectId"
+                        }
+                    ],
+                    "returns": [
+                        {
+                            "name": "rules",
+                            "description": "IDs of all style rules being applied to the node.",
+                            "type": "array",
+                            "items": {
+                                "$ref": "Pause.ObjectId"
+                            }
+                        },
+                        {
+                            "name": "data",
+                            "description": "Information about the rules and related objects.",
+                            "$ref": "Pause.PauseData"
+                        }
+                    ]
+                }
+            ],
+            "types": [
+                {
+                    "id": "ComputedStyleProperty",
+                    "description": "A style which is applied to a node.",
+                    "type": "object",
+                    "properties": [
+                        {
+                            "name": "name",
+                            "description": "Name of the style.",
+                            "type": "string"
+                        },
+                        {
+                            "name": "value",
+                            "description": "Value of the style.",
+                            "type": "string"
+                        }
+                    ]
+                },
+                {
+                    "id": "Rule",
+                    "description": "Description of a CSSRule's contents which is attached to its\nassociated <code>Pause.ObjectPreview.rule</code>.",
+                    "type": "object",
+                    "properties": [
+                        {
+                            "name": "type",
+                            "description": "Value of <code>rule.type</code>.",
+                            "type": "integer"
+                        },
+                        {
+                            "name": "cssText",
+                            "description": "Value of <code>rule.cssText</code>.",
+                            "type": "string"
+                        },
+                        {
+                            "name": "parentStyleSheet",
+                            "description": "The ID of any style sheet this rule is associated with.",
+                            "optional": true,
+                            "$ref": "Pause.ObjectId"
+                        },
+                        {
+                            "name": "startLine",
+                            "description": "Start line in the parent style sheet (1-indexed).",
+                            "optional": true,
+                            "type": "integer"
+                        },
+                        {
+                            "name": "startColumn",
+                            "description": "Start column in the parent style sheet (0-indexed).",
+                            "optional": true,
+                            "type": "integer"
+                        },
+                        {
+                            "name": "selectorText",
+                            "description": "For <code>CSSStyleRule</code> objects, the value of <code>rule.selectorText</code>.",
+                            "optional": true,
+                            "type": "string"
+                        },
+                        {
+                            "name": "style",
+                            "description": "For <code>CSSStyleRule</code> objects, the ID of the rule's style declaration.",
+                            "optional": true,
+                            "$ref": "Pause.ObjectId"
+                        }
+                    ]
+                },
+                {
+                    "id": "StyleDeclaration",
+                    "description": "Description of a CSSStyleDeclaration's contents which is attached to its\nassociated <code>Pause.ObjectPreview.style</code>.",
+                    "type": "object",
+                    "properties": [
+                        {
+                            "name": "cssText",
+                            "description": "Value of <code>style.cssText</code>.",
+                            "type": "string"
+                        },
+                        {
+                            "name": "parentRule",
+                            "description": "If this declaration originates from a CSSStyleRule, ID of that rule.",
+                            "optional": true,
+                            "$ref": "Pause.ObjectId"
+                        },
+                        {
+                            "name": "properties",
+                            "description": "Style properties of this declaration.",
+                            "type": "array",
+                            "items": {
+                                "$ref": "StyleProperty"
+                            }
+                        }
+                    ]
+                },
+                {
+                    "id": "StyleProperty",
+                    "description": "Information about a style property declaration.",
+                    "$ref": "ComputedStyleProperty",
+                    "properties": [
+                        {
+                            "name": "important",
+                            "description": "Whether the property is marked <code>!important</code>. Defaults to\n<code>false</code> if omitted.",
+                            "optional": true,
+                            "type": "boolean"
+                        }
+                    ]
+                },
+                {
+                    "id": "StyleSheet",
+                    "description": "Description of a StyleSheet's contents which is attached to its\nassociated <code>Pause.ObjectPreview.styleSheet</code>.",
+                    "type": "object",
+                    "properties": [
+                        {
+                            "name": "href",
+                            "description": "URL of the style sheet.",
+                            "optional": true,
+                            "type": "string"
+                        }
                     ]
                 }
             ]
@@ -1585,6 +2089,27 @@
                             "description": "If specified, later functions will be excluded.",
                             "optional": true,
                             "$ref": "Debugger.ScriptLocation"
+                        }
+                    ]
+                },
+                {
+                    "name": "addEventHandlerEntryPoints",
+                    "description": "Apply the analysis to the entry point of every handler for an event.",
+                    "parameters": [
+                        {
+                            "name": "analysisId",
+                            "description": "Associated analysis.",
+                            "$ref": "AnalysisId"
+                        },
+                        {
+                            "name": "sessionId",
+                            "description": "Associated session.",
+                            "$ref": "Session.SessionId"
+                        },
+                        {
+                            "name": "eventType",
+                            "description": "Type of event whose handler calls the analysis should be applied to.",
+                            "type": "string"
                         }
                     ]
                 },
@@ -1767,6 +2292,119 @@
                             "name": "lastScreenData",
                             "description": "Raw graphics data for the end of the recording.",
                             "optional": true,
+                            "type": "string"
+                        }
+                    ]
+                },
+                {
+                    "name": "hasResource",
+                    "description": "Determine whether a resource is known to the cloud service.",
+                    "parameters": [
+                        {
+                            "name": "resource",
+                            "description": "Resource to look for.",
+                            "$ref": "Resource"
+                        }
+                    ],
+                    "returns": [
+                        {
+                            "name": "known",
+                            "description": "Whether the resource's contents are known.",
+                            "type": "boolean"
+                        }
+                    ]
+                },
+                {
+                    "name": "addResource",
+                    "description": "Upload a resource's contents to the cloud service.",
+                    "parameters": [
+                        {
+                            "name": "resource",
+                            "description": "Resource to add.",
+                            "$ref": "Resource"
+                        },
+                        {
+                            "name": "contents",
+                            "description": "Text contents of the resource.",
+                            "type": "string"
+                        }
+                    ]
+                },
+                {
+                    "name": "addRecordingResource",
+                    "description": "Associate a resource with a recording.",
+                    "parameters": [
+                        {
+                            "name": "recordingId",
+                            "description": "ID of the recording.",
+                            "$ref": "Recording.RecordingId"
+                        },
+                        {
+                            "name": "resource",
+                            "description": "Resource which the recording is associated with.",
+                            "$ref": "Resource"
+                        }
+                    ]
+                },
+                {
+                    "name": "listRecordingResources",
+                    "description": "List all resources associated with a recording.",
+                    "parameters": [
+                        {
+                            "name": "recordingId",
+                            "description": "ID of the recording.",
+                            "$ref": "Recording.RecordingId"
+                        }
+                    ],
+                    "returns": [
+                        {
+                            "name": "resources",
+                            "description": "All resources that have been associated with the recording.",
+                            "type": "array",
+                            "items": {
+                                "$ref": "Resource"
+                            }
+                        }
+                    ]
+                },
+                {
+                    "name": "getRecordingResource",
+                    "description": "Download a resource associated with a recording.",
+                    "parameters": [
+                        {
+                            "name": "recordingId",
+                            "description": "ID of the recording.",
+                            "$ref": "Recording.RecordingId"
+                        },
+                        {
+                            "name": "resource",
+                            "description": "Resource to download.",
+                            "$ref": "Resource"
+                        }
+                    ],
+                    "returns": [
+                        {
+                            "name": "contents",
+                            "description": "Text contents of the resource.",
+                            "type": "string"
+                        }
+                    ]
+                }
+            ],
+            "types": [
+                {
+                    "id": "Resource",
+                    "description": "Information about a file based resource. Currently, resources are used for\nsource maps and original sources.",
+                    "type": "object",
+                    "properties": [
+                        {
+                            "name": "url",
+                            "description": "URL of the resource.",
+                            "type": "string"
+                        },
+                        {
+                            "name": "checksum",
+                            "description": "Checksum of the resource's contents.",
                             "type": "string"
                         }
                     ]
