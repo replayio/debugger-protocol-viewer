@@ -1,23 +1,23 @@
 ---
 layout: shell.hbs
-title: Web Replay Protocol
+title: Record Replay Protocol
 version: tot
 ---
-The <b>Web Replay Protocol</b> is used by tools to upload and inspect <a href="https://webreplay.io">Web Replay</a> recordings.
+The <b>Record Replay Protocol</b> is used by tools to upload and inspect <a href="https://replay.io">Record Replay</a> recordings.
 
 This protocol is preliminary and will grow substantially over time.  Join the #protocol channel in our <a href="https://join.slack.com/t/webreplay/shared_invite/enQtOTgwOTI3MTQ3NTg4LTA3MTQ4ZWMwMzYwMWI4MzFhYjkyMDZhMjU4YmE0MDgxYTI5YTYxMmZiMzJiOTlkMDcwZGEyOTAyNjc2MGFmYTg">Slack</a> community for news and discussions.
 
-<h3>Web Replay</h3>
+<h3>Record Replay</h3>
 
-The Web Replay browser is used to make complete recordings of a tab which capture all JS, DOM, and other behaviors.  These recordings are uploaded to Web Replay's cloud service, and clients can then connect to the cloud service and inspect the recordings.  Both uploading and inspecting are performed via the Web Replay Protocol.
+The Record Replay browser is used to make complete recordings of a tab which capture all JS, DOM, and other behaviors.  These recordings are uploaded to Record Replay's cloud service, and clients can then connect to the cloud service and inspect the recordings.  Both uploading and inspecting are performed via the Record Replay Protocol.
 
-The Web Replay Protocol is separate from the Web Replay browser itself and the format of its recordings.  Other ways to make recordings will be added in the future, and tools built on top of the Web Replay Protocol will be able to interact with any recording, regardless of how it was made.
+The Record Replay Protocol is separate from the Record Replay browser itself and the format of its recordings.  Other ways to make recordings will be added in the future, and tools built on top of the Record Replay Protocol will be able to interact with any recording, regardless of how it was made.
 
 <h3>Protocol Overview</h3>
 
-The design of the Web Replay Protocol is based on the <a href="https://chromedevtools.github.io/devtools-protocol/">Chrome DevTools Protocol</a> (which is in turn based on <a href="https://www.jsonrpc.org/specification">JSON-RPC</a>).  Connections and messages are handled in very similar ways, and when appropriate, messages and values sent over the Web Replay Protocol are structured in the same way as in the Chrome DevTools Protocol.
+The design of the Record Replay Protocol is based on the <a href="https://chromedevtools.github.io/devtools-protocol/">Chrome DevTools Protocol</a> (which is in turn based on <a href="https://www.jsonrpc.org/specification">JSON-RPC</a>).  Connections and messages are handled in very similar ways, and when appropriate, messages and values sent over the Record Replay Protocol are structured in the same way as in the Chrome DevTools Protocol.
 
-To connect to the Web Replay cloud service, open a websocket connection to <code>wss://dispatch.webreplay.io</code>.  The protocol can then be used immediately, with no authentication (this will change soon).
+To connect to the Record Replay cloud service, open a websocket connection to <code>wss://dispatch.replay.io</code>.  The protocol can then be used immediately, with no authentication (this will change soon).
 
 The protocol is used by sending it requests over the websocket.  Requests are stringified JSON objects with the following properties:
 
