@@ -117,6 +117,120 @@
                             "description": "Painted graphics at the end of the recording.",
                             "optional": true,
                             "$ref": "Graphics.ScreenShot"
+                        },
+                        {
+                            "name": "commandLineArguments",
+                            "description": "Any command line arguments associated with the recording.",
+                            "optional": true,
+                            "type": "array",
+                            "items": {
+                                "type": "string"
+                            }
+                        }
+                    ]
+                },
+                {
+                    "name": "getMetadata",
+                    "description": "Get an entry in a recording's metadata key/value store.",
+                    "parameters": [
+                        {
+                            "name": "recordingId",
+                            "description": "Associated recording ID.",
+                            "$ref": "RecordingId"
+                        },
+                        {
+                            "name": "key",
+                            "description": "Key for the metadata being accessed.",
+                            "type": "string"
+                        }
+                    ],
+                    "returns": [
+                        {
+                            "name": "value",
+                            "description": "Any value associated with the recording and key.",
+                            "optional": true,
+                            "type": "string"
+                        }
+                    ]
+                },
+                {
+                    "name": "setMetadata",
+                    "description": "Set an entry in a recording's metadata.",
+                    "parameters": [
+                        {
+                            "name": "recordingId",
+                            "description": "Associated recording ID.",
+                            "$ref": "RecordingId"
+                        },
+                        {
+                            "name": "key",
+                            "description": "Key for the entry being set.",
+                            "type": "string"
+                        },
+                        {
+                            "name": "newValue",
+                            "description": "Value to associate with the recording and key, omitted to delete the\nkey's entry.",
+                            "optional": true,
+                            "type": "string"
+                        },
+                        {
+                            "name": "oldValue",
+                            "description": "Expected current value for the key's entry.",
+                            "optional": true,
+                            "type": "string"
+                        }
+                    ],
+                    "returns": [
+                        {
+                            "name": "updated",
+                            "description": "Whether the assignment was performed. The assignment will not be\nperformed if the <code>oldValue</code> parameter did not match the\ncurrent value of the key's entry.",
+                            "type": "boolean"
+                        },
+                        {
+                            "name": "currentValue",
+                            "description": "Current value of the key's entry. If the update was performed, this\nequals the <code>newValue</code> parameter. Otherwise, this will <b>not</b>\nequal the <code>oldValue</code> parameter.",
+                            "optional": true,
+                            "type": "string"
+                        }
+                    ]
+                },
+                {
+                    "name": "metadataStartListening",
+                    "description": "Listen for changes to an entry in a recording's metadata. When listening,\n<code>metadataChange</code> events will be emitted whenever the entry's\nvalue changes.",
+                    "parameters": [
+                        {
+                            "name": "recordingId",
+                            "description": "Associated recording ID.",
+                            "$ref": "RecordingId"
+                        },
+                        {
+                            "name": "key",
+                            "description": "Key for the metadata entry to listen to.",
+                            "type": "string"
+                        }
+                    ],
+                    "returns": [
+                        {
+                            "name": "value",
+                            "description": "Current value for the entry, as for <code>getMetadata</code>.",
+                            "optional": true,
+                            "type": "string"
+                        }
+                    ]
+                },
+                {
+                    "name": "metadataStopListening",
+                    "description": "Stop listening for changes to an entry in a recording's metadata.",
+                    "parameters": [
+                        {
+                            "name": "recordingId",
+                            "description": "Associated recording ID.",
+                            "$ref": "RecordingId"
+                        },
+                        {
+                            "name": "key",
+                            "description": "Key for the metadata entry to listen to.",
+                            "type": "string"
                         }
                     ]
                 },
@@ -161,6 +275,28 @@
                 }
             ],
             "events": [
+                {
+                    "name": "metadataChange",
+                    "description": "Describes a change to an entry in a recording's metadata.",
+                    "parameters": [
+                        {
+                            "name": "recordingId",
+                            "description": "Associated recording ID.",
+                            "$ref": "RecordingId"
+                        },
+                        {
+                            "name": "key",
+                            "description": "Key for the metadata entry which changed.",
+                            "type": "string"
+                        },
+                        {
+                            "name": "newValue",
+                            "description": "New value of the metadata entry.",
+                            "optional": true,
+                            "type": "string"
+                        }
+                    ]
+                },
                 {
                     "name": "uploadedData",
                     "description": "Describes how much of a recording's data has been uploaded to the cloud service.",
@@ -253,12 +389,9 @@
                         },
                         {
                             "name": "stack",
-                            "description": "IDs of all frames on the stack. Omitted if there are no\nframes on the stack at this point.",
+                            "description": "Stack contents, omitted if there are no frames on the stack at this point.",
                             "optional": true,
-                            "type": "array",
-                            "items": {
-                                "$ref": "Pause.FrameId"
-                            }
+                            "$ref": "Pause.CallStack"
                         },
                         {
                             "name": "data",
@@ -343,6 +476,12 @@
                             "name": "mimeType",
                             "description": "Encoding format for the returned screen.",
                             "$ref": "MimeType"
+                        },
+                        {
+                            "name": "resizeHeight",
+                            "description": "If specified, the returned screen will be scaled to the specified height.",
+                            "optional": true,
+                            "type": "integer"
                         }
                     ],
                     "returns": [
@@ -957,12 +1096,9 @@
                         },
                         {
                             "name": "stack",
-                            "description": "Stack contents, omitted if there are no frames on the stack\nat the message's point.",
+                            "description": "Stack contents for the pause, omitted if there are no frames on the\nstack at the message's point.",
                             "optional": true,
-                            "type": "array",
-                            "items": {
-                                "$ref": "Pause.FrameId"
-                            }
+                            "$ref": "Pause.CallStack"
                         },
                         {
                             "name": "data",
@@ -1007,6 +1143,14 @@
                     "id": "FrameId",
                     "description": "Identifier for a call frame in a pause.",
                     "type": "string"
+                },
+                {
+                    "id": "CallStack",
+                    "description": "Description of the entire call stack: the IDs of all frames, in order\nstarting with the topmost (currently executing) frame.",
+                    "type": "array",
+                    "items": {
+                        "$ref": "FrameId"
+                    }
                 },
                 {
                     "id": "ScopeId",
@@ -1113,6 +1257,15 @@
                             }
                         },
                         {
+                            "name": "originalScopeChain",
+                            "description": "Alternate scope chain determined from any source map for the frame's\nscript. This can be structured differently and include different names\nthan the normal scope chain.",
+                            "optional": true,
+                            "type": "array",
+                            "items": {
+                                "$ref": "ScopeId"
+                            }
+                        },
+                        {
                             "name": "this",
                             "description": "<code>this</code> value of the call frame.",
                             "$ref": "Value"
@@ -1158,10 +1311,10 @@
                             "$ref": "ObjectId"
                         },
                         {
-                            "name": "callee",
-                            "description": "For <code>function</code> scopes, the called function.",
+                            "name": "functionName",
+                            "description": "For <code>function</code> scopes, the name of the called function.",
                             "optional": true,
-                            "$ref": "ObjectId"
+                            "type": "string"
                         },
                         {
                             "name": "bindings",
@@ -1169,21 +1322,8 @@
                             "optional": true,
                             "type": "array",
                             "items": {
-                                "$ref": "ScopeValue"
+                                "$ref": "NamedValue"
                             }
-                        }
-                    ]
-                },
-                {
-                    "id": "ScopeValue",
-                    "description": "The value of a variable within a scope.",
-                    "$ref": "NamedValue",
-                    "properties": [
-                        {
-                            "name": "originalName",
-                            "description": "Any original name for this variable specified by a source map for the\nscope's script.",
-                            "optional": true,
-                            "type": "string"
                         }
                     ]
                 },
@@ -1457,12 +1597,18 @@
                         },
                         {
                             "name": "bindings",
-                            "description": "Any extra bindings to add to the evaluation's scope. If original names\nare available from a source map for the scope's script, additional\nbindings will be implicitly created for the values mapping to those\noriginal names.",
+                            "description": "Any extra bindings to add to the evaluation's scope.",
                             "optional": true,
                             "type": "array",
                             "items": {
                                 "$ref": "NamedValue"
                             }
+                        },
+                        {
+                            "name": "useOriginalScopes",
+                            "description": "Whether to perform the evaluation in the context of the original\nscope chain for the frame.",
+                            "optional": true,
+                            "type": "boolean"
                         }
                     ],
                     "returns": [
@@ -1627,8 +1773,8 @@
                     "returns": [
                         {
                             "name": "frame",
-                            "description": "The topmost frame.",
-                            "$ref": "Frame"
+                            "description": "ID of the topmost frame.",
+                            "$ref": "FrameId"
                         },
                         {
                             "name": "data",
@@ -1643,11 +1789,8 @@
                     "returns": [
                         {
                             "name": "frames",
-                            "description": "All frames on the stack, ordered from top to bottom.",
-                            "type": "array",
-                            "items": {
-                                "$ref": "Frame"
-                            }
+                            "description": "IDs of all frames on the stack.",
+                            "$ref": "CallStack"
                         },
                         {
                             "name": "data",
@@ -1970,13 +2113,13 @@
                         },
                         {
                             "name": "parentNode",
-                            "description": "ID of any <code>node.parentNode</code>.",
+                            "description": "ID of any <code>node.parentNode</code>. For the document node in an\n<code>iframe</code>, this will be the <code>iframe</code> element itself\ninstead of null.",
                             "optional": true,
                             "$ref": "Pause.ObjectId"
                         },
                         {
                             "name": "childNodes",
-                            "description": "IDs of all <code>node.childNodes</code>.",
+                            "description": "IDs of all <code>node.childNodes</code>. For <code>iframe</code> elements\nthis will additionally contain the document element of that frame.",
                             "optional": true,
                             "type": "array",
                             "items": {
@@ -2596,6 +2739,241 @@
             ]
         },
         {
+            "domain": "Host",
+            "description": "The Host domain includes commands that are sent by the Record Replay Driver\nto its host VM. Protocol clients should not use this domain. See\nhttps://replay.io/driver for more information.",
+            "commands": [
+                {
+                    "name": "convertLocationToFunctionOffset",
+                    "description": "Get the function ID / offset to use for a script location, if there is one.",
+                    "parameters": [
+                        {
+                            "name": "location",
+                            "$ref": "Debugger.Location"
+                        }
+                    ],
+                    "returns": [
+                        {
+                            "name": "functionId",
+                            "optional": true,
+                            "type": "string"
+                        },
+                        {
+                            "name": "offset",
+                            "optional": true,
+                            "type": "integer"
+                        }
+                    ]
+                },
+                {
+                    "name": "convertFunctionOffsetToLocation",
+                    "description": "Get the location to use for a function ID / offset.",
+                    "parameters": [
+                        {
+                            "name": "functionId",
+                            "type": "string"
+                        },
+                        {
+                            "name": "offset",
+                            "optional": true,
+                            "type": "integer"
+                        }
+                    ],
+                    "returns": [
+                        {
+                            "name": "location",
+                            "$ref": "Debugger.Location"
+                        }
+                    ]
+                },
+                {
+                    "name": "getStepOffsets",
+                    "description": "Get the offsets at which execution should pause when stepping around within\na frame for a function.",
+                    "parameters": [
+                        {
+                            "name": "functionId",
+                            "type": "string"
+                        }
+                    ],
+                    "returns": [
+                        {
+                            "name": "offsets",
+                            "description": "Offsets at which execution should stop when stepping. This is a\nsubset of the breakpoint locations in the function, and may be\nomitted if execution should stop at all breakpoint locations.",
+                            "optional": true,
+                            "type": "array",
+                            "items": {
+                                "type": "integer"
+                            }
+                        }
+                    ]
+                },
+                {
+                    "name": "getHTMLSource",
+                    "description": "Get the most complete contents known for an HTML file.",
+                    "parameters": [
+                        {
+                            "name": "url",
+                            "type": "string"
+                        }
+                    ],
+                    "returns": [
+                        {
+                            "name": "contents",
+                            "type": "string"
+                        }
+                    ]
+                },
+                {
+                    "name": "getFunctionsInRange",
+                    "description": "Get the IDs of all functions in a range within a script.",
+                    "parameters": [
+                        {
+                            "name": "scriptId",
+                            "$ref": "Debugger.ScriptId"
+                        },
+                        {
+                            "name": "begin",
+                            "optional": true,
+                            "$ref": "Debugger.ScriptLocation"
+                        },
+                        {
+                            "name": "end",
+                            "optional": true,
+                            "$ref": "Debugger.ScriptLocation"
+                        }
+                    ],
+                    "returns": [
+                        {
+                            "name": "functions",
+                            "type": "array",
+                            "items": {
+                                "type": "string"
+                            }
+                        }
+                    ]
+                },
+                {
+                    "name": "getScriptSourceMapURL",
+                    "description": "Get any source map URL associated with a script.",
+                    "parameters": [
+                        {
+                            "name": "scriptId",
+                            "$ref": "Debugger.ScriptId"
+                        }
+                    ],
+                    "returns": [
+                        {
+                            "name": "url",
+                            "optional": true,
+                            "type": "string"
+                        }
+                    ]
+                },
+                {
+                    "name": "getSheetSourceMapURL",
+                    "description": "Get any source map URL associated with a style sheet.",
+                    "parameters": [
+                        {
+                            "name": "sheet",
+                            "$ref": "Pause.ObjectId"
+                        }
+                    ],
+                    "returns": [
+                        {
+                            "name": "url",
+                            "optional": true,
+                            "type": "string"
+                        }
+                    ]
+                },
+                {
+                    "name": "getCurrentMessageContents",
+                    "description": "This command might be sent from within an OnConsoleMessage() call to get\ncontents of the new message. Properties in the result have the same meaning\nas for <code>Console.Message</code>.",
+                    "returns": [
+                        {
+                            "name": "source",
+                            "$ref": "Console.MessageSource"
+                        },
+                        {
+                            "name": "level",
+                            "$ref": "Console.MessageLevel"
+                        },
+                        {
+                            "name": "text",
+                            "type": "string"
+                        },
+                        {
+                            "name": "url",
+                            "optional": true,
+                            "type": "string"
+                        },
+                        {
+                            "name": "scriptId",
+                            "optional": true,
+                            "$ref": "Debugger.ScriptId"
+                        },
+                        {
+                            "name": "line",
+                            "optional": true,
+                            "type": "integer"
+                        },
+                        {
+                            "name": "column",
+                            "optional": true,
+                            "type": "integer"
+                        },
+                        {
+                            "name": "argumentValues",
+                            "optional": true,
+                            "type": "array",
+                            "items": {
+                                "$ref": "Pause.Value"
+                            }
+                        }
+                    ]
+                },
+                {
+                    "name": "countStackFrames",
+                    "description": "Count the number of stack frames on the stack. This is equivalent to using\nthe size of the stack returned by <code>Pause.getAllFrames</code>, but can\nbe implemented more efficiently.",
+                    "returns": [
+                        {
+                            "name": "count",
+                            "type": "integer"
+                        }
+                    ]
+                },
+                {
+                    "name": "currentGeneratorId",
+                    "description": "If the topmost frame on the stack is a generator frame which can be popped\nand pushed on the stack repeatedly, return a unique ID for the frame which\nwill be consistent across each of those pops and pushes.",
+                    "returns": [
+                        {
+                            "name": "id",
+                            "optional": true,
+                            "type": "integer"
+                        }
+                    ]
+                },
+                {
+                    "name": "getObjectPreviewRequiredProperties",
+                    "description": "When generating previews whose contents might overflow, this can be used to\nspecify property and getter names which must be included in the resulting\npreview.",
+                    "parameters": [
+                        {
+                            "name": "object",
+                            "$ref": "Pause.ObjectId"
+                        }
+                    ],
+                    "returns": [
+                        {
+                            "name": "properties",
+                            "type": "array",
+                            "items": {
+                                "type": "string"
+                            }
+                        }
+                    ]
+                }
+            ]
+        },
+        {
             "domain": "Internal",
             "description": "The Internal domain is for use in software that is used to create recordings\nand for internal/diagnostic use cases. While use of this domain is not\nrestricted, it won't be very helpful for other users.",
             "commands": [
@@ -2668,6 +3046,15 @@
                             "description": "Raw graphics data for the end of the recording.",
                             "optional": true,
                             "type": "string"
+                        },
+                        {
+                            "name": "commandLineArguments",
+                            "description": "Any command line arguments associated with the recording.",
+                            "optional": true,
+                            "type": "array",
+                            "items": {
+                                "type": "string"
+                            }
                         }
                     ]
                 },
@@ -2753,43 +3140,31 @@
                     ]
                 },
                 {
-                    "name": "convertLocationToFunctionOffset",
-                    "description": "Get the function ID / offset to use for a script location.",
+                    "name": "labelTestSession",
+                    "description": "Mark a session which was created for an automated test.",
                     "parameters": [
                         {
-                            "name": "location",
-                            "$ref": "Debugger.Location"
-                        }
-                    ],
-                    "returns": [
-                        {
-                            "name": "functionId",
-                            "type": "string"
-                        },
-                        {
-                            "name": "offset",
-                            "$ref": "int"
+                            "name": "sessionId",
+                            "$ref": "Session.SessionId"
                         }
                     ]
                 },
                 {
-                    "name": "convertFunctionOffsetToLocation",
-                    "description": "Get the location to use for a function ID / offset.",
+                    "name": "getRecordings",
+                    "description": "Get the user's recordings",
                     "parameters": [
                         {
-                            "name": "functionId",
+                            "name": "authId",
                             "type": "string"
-                        },
-                        {
-                            "name": "offset",
-                            "optional": true,
-                            "$ref": "int"
                         }
                     ],
                     "returns": [
                         {
-                            "name": "location",
-                            "$ref": "Debugger.Location"
+                            "name": "recordings",
+                            "type": "array",
+                            "items": {
+                                "type": "object"
+                            }
                         }
                     ]
                 }
