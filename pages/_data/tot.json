@@ -1578,6 +1578,17 @@
                             "$ref": "PauseData"
                         }
                     ]
+                },
+                {
+                    "id": "ObjectPreviewLevel",
+                    "description": "Levels of detail for an object preview.\n<br>\n<br><code>none</code>: Don't actually generate a preview, but just an <code>Object</code>\n  with non-preview information.\n<br><code>noProperties</code>: Generate an overflowing preview with no properties.\n<br><code>canOverflow</code>: Generate a preview with some properties.\n  If there are too many properties, some may be omitted and the preview will overflow.\n<br><code>full</code>: Generate a non-overflowing preview with all properties.\n<br><br>",
+                    "type": "string",
+                    "enum": [
+                        "none",
+                        "noProperties",
+                        "canOverflow",
+                        "full"
+                    ]
                 }
             ],
             "commands": [
@@ -1733,18 +1744,24 @@
                 },
                 {
                     "name": "getObjectPreview",
-                    "description": "Load a complete preview for an object.",
+                    "description": "Load a preview for an object.",
                     "parameters": [
                         {
                             "name": "object",
                             "description": "Object to load the preview for.",
                             "$ref": "ObjectId"
+                        },
+                        {
+                            "name": "level",
+                            "description": "Amount of data desired in the resulting preview. If omitted, the full\nnon-overflowing preview for the object will be returned.",
+                            "optional": true,
+                            "$ref": "ObjectPreviewLevel"
                         }
                     ],
                     "returns": [
                         {
                             "name": "data",
-                            "description": "Returned data. This includes a preview for the object which does not\nhave <code>overflow</code> set, and additional data for objects which\nit references.",
+                            "description": "Returned data. This includes a preview for the object, and additional\ndata for objects which it references.",
                             "$ref": "PauseData"
                         }
                     ]
@@ -2739,8 +2756,8 @@
             ]
         },
         {
-            "domain": "Host",
-            "description": "The Host domain includes commands that are sent by the Record Replay Driver\nto its host VM. Protocol clients should not use this domain. See\nhttps://replay.io/driver for more information.",
+            "domain": "Target",
+            "description": "The Target domain includes commands that are sent by the Record Replay Driver\nto the target application which it is attached to. Protocol clients should\nnot use this domain. See https://replay.io/driver for more information.",
             "commands": [
                 {
                     "name": "convertLocationToFunctionOffset",
@@ -2887,7 +2904,7 @@
                 },
                 {
                     "name": "getCurrentMessageContents",
-                    "description": "This command might be sent from within an OnConsoleMessage() call to get\ncontents of the new message. Properties in the result have the same meaning\nas for <code>Console.Message</code>.",
+                    "description": "This command might be sent from within a RecordReplayOnConsoleMessage() call\nto get  contents of the new message. Properties in the result have the same\nmeaning as for <code>Console.Message</code>.",
                     "returns": [
                         {
                             "name": "source",
@@ -2949,25 +2966,6 @@
                             "name": "id",
                             "optional": true,
                             "type": "integer"
-                        }
-                    ]
-                },
-                {
-                    "name": "getObjectPreviewRequiredProperties",
-                    "description": "When generating previews whose contents might overflow, this can be used to\nspecify property and getter names which must be included in the resulting\npreview.",
-                    "parameters": [
-                        {
-                            "name": "object",
-                            "$ref": "Pause.ObjectId"
-                        }
-                    ],
-                    "returns": [
-                        {
-                            "name": "properties",
-                            "type": "array",
-                            "items": {
-                                "type": "string"
-                            }
                         }
                     ]
                 }
