@@ -43,13 +43,13 @@ export class DomainGenerator {
     return this.domainTemplate(data.pagination.items[0]);
   }
 
-  descriptionTemplate(description, item) {
+  descriptionTemplate(domain, description, item) {
     // Some descriptions use markdown. eg. Page.printToPDF
     // Some params have an emum: e.g. Debugger.continueToLocation
     return html`
       <div class="details-description">
         ${description ? marked(description) : ''}
-        ${item ? this.enumDetails(item) : ''}
+        ${item ? this.enumDetails(domain, item) : ''}
       </div>
     `;
   }
@@ -129,7 +129,7 @@ export class DomainGenerator {
         </dt>
         <dd>
           ${this.propertiesType(domain, item)}
-          ${this.descriptionTemplate(description, item)}
+          ${this.descriptionTemplate(domain, description, item)}
           ${this.statusTemplate(experimental, deprecated)}
         </dd>
       `;
@@ -175,13 +175,20 @@ export class DomainGenerator {
     `;
   }
 
-  enumDetails(details) {
+  enumDetails(domain, details) {
     const {enum: enumValues} = details;
     if (!enumValues || !enumValues.length) {
       return '';
     }
 
-    const enumItems = enumValues.map(e => html`<code>${e}</code>`);
+    const enumItems = enumValues.map(e => {
+      const referral = this.computeReferral(e);
+      if (referral) {
+        return html`<a href=${this.computeReferralUrl(domain, referral)} class="param-type">${referral}</a>`
+      }
+
+      return html`<code>${e}</code>`;
+    });
     return html`
       <div class="enum-container">Allowed Values: ${enumItems.join(', ')}</div>
     `;
@@ -208,7 +215,7 @@ export class DomainGenerator {
              data-slug="${domain}.${actualName}"
              title="Double click to copy markdown-formatted URL">#</a>
         </h4>
-        ${this.descriptionTemplate(description, details)}
+        ${this.descriptionTemplate(domain, description, details)}
         ${type
           ? html`<p class="type-type">Type: <strong>${type}</strong></p>`
           : ''
@@ -248,7 +255,7 @@ export class DomainGenerator {
     <div class="domain-section">
       <div id="header">
         <h2 class="heading">${domain} Domain</h2>
-        ${this.descriptionTemplate(description)}
+        ${this.descriptionTemplate(domain, description)}
         ${this.statusTemplate(experimental, deprecated)}
         ${this.domainTocTemplate('Methods', domain, commands)}
         ${this.domainTocTemplate('Events', domain, events)}
