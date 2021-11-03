@@ -392,6 +392,10 @@ span.domain-dot {
   display: inline;
 }
 
+.enum-container .param-type {
+  display: inline;
+}
+
 h4 {
   /* use padding rather than margin for better positioning when viewing #method-navigate, etc. */
   margin-top: 0;
