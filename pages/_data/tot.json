@@ -44,6 +44,21 @@
                     "type": "string"
                 },
                 {
+                    "id": "PointRange",
+                    "description": "A range between two execution points in a recording.",
+                    "type": "object",
+                    "properties": [
+                        {
+                            "name": "begin",
+                            "$ref": "ExecutionPoint"
+                        },
+                        {
+                            "name": "end",
+                            "$ref": "ExecutionPoint"
+                        }
+                    ]
+                },
+                {
                     "id": "TimeStampedPoint",
                     "description": "An execution point and its associated time stamp. Recordings always have a\nbeginning execution point with value \"0\" and a time stamp of zero.",
                     "type": "object",
@@ -55,6 +70,21 @@
                         {
                             "name": "time",
                             "$ref": "TimeStamp"
+                        }
+                    ]
+                },
+                {
+                    "id": "TimeStampedPointRange",
+                    "description": "A range between two points, with associated time stamps.",
+                    "type": "object",
+                    "properties": [
+                        {
+                            "name": "begin",
+                            "$ref": "TimeStampedPoint"
+                        },
+                        {
+                            "name": "end",
+                            "$ref": "TimeStampedPoint"
                         }
                     ]
                 },
@@ -88,6 +118,78 @@
                         "mousemove",
                         "mousedown"
                     ]
+                },
+                {
+                    "id": "KeyboardEvent",
+                    "description": "A keyboard event that occurs somewhere in a recording.",
+                    "$ref": "TimeStampedPoint",
+                    "properties": [
+                        {
+                            "name": "kind",
+                            "description": "Kind of mouse event.",
+                            "$ref": "KeyboardEventKind"
+                        },
+                        {
+                            "name": "key",
+                            "description": "The DOM-spec key representing the key being pressed. See\nhttps://www.w3.org/TR/uievents-code/ for more information.\nNote: Depending on the platform being recorded, not all key events may be recordable.",
+                            "type": "string"
+                        }
+                    ]
+                },
+                {
+                    "id": "KeyboardEventKind",
+                    "description": "Kinds of keyboard events described in a recording.\nNote: Platforms should prefer to record key down/up events if possible, but keypress\nis provided as a simpler fallback for platforms unable to track down/up events.",
+                    "type": "string",
+                    "enum": [
+                        "keydown",
+                        "keyup",
+                        "keypress"
+                    ]
+                },
+                {
+                    "id": "NavigationEvent",
+                    "description": "A navigate operation that occurs somewhere in a recording.",
+                    "$ref": "TimeStampedPoint",
+                    "properties": [
+                        {
+                            "name": "kind",
+                            "description": "The kind of navigation that occured, if known.",
+                            "optional": true,
+                            "type": "string"
+                        },
+                        {
+                            "name": "url",
+                            "description": "The URL that the top-level page navigated to.",
+                            "type": "string"
+                        }
+                    ]
+                },
+                {
+                    "id": "Annotation",
+                    "description": "An annotation that was added to a recording.",
+                    "$ref": "TimeStampedPoint",
+                    "properties": [
+                        {
+                            "name": "kind",
+                            "description": "Kind of annotation.",
+                            "type": "string"
+                        },
+                        {
+                            "name": "contents",
+                            "description": "Data associated with the annotation.",
+                            "type": "string"
+                        }
+                    ]
+                },
+                {
+                    "id": "SourceMapId",
+                    "description": "An opaque source map identifier.",
+                    "type": "string"
+                },
+                {
+                    "id": "SourceMapTargetHash",
+                    "description": "The hash of a target for the sourcemap.\n\nSee Resource.FileHash for further info in the expected format for\nthis hash string.",
+                    "type": "string"
                 }
             ],
             "commands": [
@@ -111,137 +213,29 @@
                             "name": "length",
                             "description": "Byte length of the recording.",
                             "type": "integer"
-                        },
-                        {
-                            "name": "lastScreen",
-                            "description": "Painted graphics at the end of the recording.",
-                            "optional": true,
-                            "$ref": "Graphics.ScreenShot"
-                        },
-                        {
-                            "name": "commandLineArguments",
-                            "description": "Any command line arguments associated with the recording.",
-                            "optional": true,
-                            "type": "array",
-                            "items": {
-                                "type": "string"
-                            }
-                        }
-                    ]
-                },
-                {
-                    "name": "getMetadata",
-                    "description": "Get an entry in a recording's metadata key/value store.",
-                    "parameters": [
-                        {
-                            "name": "recordingId",
-                            "description": "Associated recording ID.",
-                            "$ref": "RecordingId"
-                        },
-                        {
-                            "name": "key",
-                            "description": "Key for the metadata being accessed.",
-                            "type": "string"
-                        }
-                    ],
-                    "returns": [
-                        {
-                            "name": "value",
-                            "description": "Any value associated with the recording and key.",
-                            "optional": true,
-                            "type": "string"
-                        }
-                    ]
-                },
-                {
-                    "name": "setMetadata",
-                    "description": "Set an entry in a recording's metadata.",
-                    "parameters": [
-                        {
-                            "name": "recordingId",
-                            "description": "Associated recording ID.",
-                            "$ref": "RecordingId"
-                        },
-                        {
-                            "name": "key",
-                            "description": "Key for the entry being set.",
-                            "type": "string"
-                        },
-                        {
-                            "name": "newValue",
-                            "description": "Value to associate with the recording and key, omitted to delete the\nkey's entry.",
-                            "optional": true,
-                            "type": "string"
-                        },
-                        {
-                            "name": "oldValue",
-                            "description": "Expected current value for the key's entry.",
-                            "optional": true,
-                            "type": "string"
-                        }
-                    ],
-                    "returns": [
-                        {
-                            "name": "updated",
-                            "description": "Whether the assignment was performed. The assignment will not be\nperformed if the <code>oldValue</code> parameter did not match the\ncurrent value of the key's entry.",
-                            "type": "boolean"
-                        },
-                        {
-                            "name": "currentValue",
-                            "description": "Current value of the key's entry. If the update was performed, this\nequals the <code>newValue</code> parameter. Otherwise, this will <b>not</b>\nequal the <code>oldValue</code> parameter.",
-                            "optional": true,
-                            "type": "string"
-                        }
-                    ]
-                },
-                {
-                    "name": "metadataStartListening",
-                    "description": "Listen for changes to an entry in a recording's metadata. When listening,\n<code>metadataChange</code> events will be emitted whenever the entry's\nvalue changes.",
-                    "parameters": [
-                        {
-                            "name": "recordingId",
-                            "description": "Associated recording ID.",
-                            "$ref": "RecordingId"
-                        },
-                        {
-                            "name": "key",
-                            "description": "Key for the metadata entry to listen to.",
-                            "type": "string"
-                        }
-                    ],
-                    "returns": [
-                        {
-                            "name": "value",
-                            "description": "Current value for the entry, as for <code>getMetadata</code>.",
-                            "optional": true,
-                            "type": "string"
-                        }
-                    ]
-                },
-                {
-                    "name": "metadataStopListening",
-                    "description": "Stop listening for changes to an entry in a recording's metadata.",
-                    "parameters": [
-                        {
-                            "name": "recordingId",
-                            "description": "Associated recording ID.",
-                            "$ref": "RecordingId"
-                        },
-                        {
-                            "name": "key",
-                            "description": "Key for the metadata entry to listen to.",
-                            "type": "string"
                         }
                     ]
                 },
                 {
                     "name": "createSession",
-                    "description": "Create a session for inspecting a recording. This command does not return\nuntil the recording's contents have been fully received. If the contents\nare incomplete, <code>uploadedData</code> events will be periodically\nemitted before the command returns. After creating, a <code>sessionError</code>\nevents may be emitted later if the session dies unexpectedly.",
+                    "description": "Create a session for inspecting a recording. This command does not return\nuntil the recording's contents have been fully received, unless\n<code>loadPoint</code> is specified. If the contents\nare incomplete, <code>uploadedData</code> events will be periodically\nemitted before the command returns. After creating, a <code>sessionError</code>\nevents may be emitted later if the session dies unexpectedly.",
                     "parameters": [
                         {
                             "name": "recordingId",
                             "description": "Recording to load into the session.",
                             "$ref": "RecordingId"
+                        },
+                        {
+                            "name": "loadPoint",
+                            "description": "Instead of waiting for the recording to be fully received, only wait until\nenough of the recording has been received that this point can be loaded.",
+                            "optional": true,
+                            "$ref": "ExecutionPoint"
+                        },
+                        {
+                            "name": "experimentalSettings",
+                            "description": "Settings which can be used to configure the session in ways that are not\nyet officially supported in the protocol.",
+                            "optional": true,
+                            "type": "object"
                         }
                     ],
                     "returns": [
@@ -272,31 +266,80 @@
                             "$ref": "RecordingId"
                         }
                     ]
-                }
-            ],
-            "events": [
+                },
                 {
-                    "name": "metadataChange",
-                    "description": "Describes a change to an entry in a recording's metadata.",
+                    "name": "addSourceMap",
+                    "description": "Add a sourcemap to the recording.\n\nThe sourcemap will be applied to any file that matches the given\nset of target hash filters.",
                     "parameters": [
                         {
                             "name": "recordingId",
-                            "description": "Associated recording ID.",
+                            "description": "Recording to apply the sourcemap to.",
                             "$ref": "RecordingId"
                         },
                         {
-                            "name": "key",
-                            "description": "Key for the metadata entry which changed.",
-                            "type": "string"
+                            "name": "targetContentHash",
+                            "description": "Limit this sourcemap to only apply to sources with this content hash.",
+                            "optional": true,
+                            "$ref": "SourceMapTargetHash"
                         },
                         {
-                            "name": "newValue",
-                            "description": "New value of the metadata entry.",
+                            "name": "targetURLHash",
+                            "description": "Limit this sourcemap to only apply to sources with this url hash.",
                             "optional": true,
+                            "$ref": "SourceMapTargetHash"
+                        },
+                        {
+                            "name": "targetMapURLHash",
+                            "description": "Limit this sourcemap to only apply to sources with this source-map-url hash.\ne.g. The hash of the 'url' value from Target.getSourceMapURL/Target.getSheetSourceMapURL\nto tie this map to.\n\nUsing the url or content hash of the source itself is recommended for more\nspecificity, but if there is no URL and the content is unknown, such as\nin the case for inline CSS, this is necessary.",
+                            "optional": true,
+                            "$ref": "SourceMapTargetHash"
+                        },
+                        {
+                            "name": "resource",
+                            "description": "The sourcemap's resource data.",
+                            "$ref": "Resource.Proof"
+                        },
+                        {
+                            "name": "baseURL",
+                            "description": "The baseURL to use when resolving relative paths in the map.",
                             "type": "string"
+                        }
+                    ],
+                    "returns": [
+                        {
+                            "name": "id",
+                            "$ref": "SourceMapId"
                         }
                     ]
                 },
+                {
+                    "name": "addOriginalSource",
+                    "description": "Add original source content to a given sourcemap.\n\nSourceMaps do not always contain the original source, so this\nthis allows users to explicitly associate the correct source content\nwith a source in the map.",
+                    "parameters": [
+                        {
+                            "name": "recordingId",
+                            "description": "Recording to get the description for.",
+                            "$ref": "RecordingId"
+                        },
+                        {
+                            "name": "resource",
+                            "description": "The original source's resource data.",
+                            "$ref": "Resource.Proof"
+                        },
+                        {
+                            "name": "parentId",
+                            "description": "The parent sourcemap's id.",
+                            "$ref": "SourceMapId"
+                        },
+                        {
+                            "name": "parentOffset",
+                            "description": "The offset in the parent sourcemap's 'sources'.",
+                            "type": "number"
+                        }
+                    ]
+                }
+            ],
+            "events": [
                 {
                     "name": "uploadedData",
                     "description": "Describes how much of a recording's data has been uploaded to the cloud service.",
@@ -316,6 +359,17 @@
                             "description": "Total size of the recording in bytes, if known.",
                             "optional": true,
                             "type": "integer"
+                        }
+                    ]
+                },
+                {
+                    "name": "awaitingSourcemaps",
+                    "description": "Emitted during 'createSession' if all recording data has been received, but\nsourcemaps are still pending.",
+                    "parameters": [
+                        {
+                            "name": "recordingId",
+                            "description": "Recording being described.",
+                            "$ref": "RecordingId"
                         }
                     ]
                 },
@@ -343,23 +397,178 @@
             ]
         },
         {
+            "domain": "Resource",
+            "description": "The commands for uploading and processing resource files.",
+            "types": [
+                {
+                    "id": "Token",
+                    "description": "An opaque salt value that can be used to create a Proof for a file.\n\nThis string should be prepended to the file's content when calculating\nthe file's salted hash for the Proof.",
+                    "type": "string"
+                },
+                {
+                    "id": "FileHash",
+                    "description": "A string representing hashed resource file content.\n\nAll hashes should be computed with SHA256 and prefixed with \"sha256:\"\nAll hashes should be computed using the UTF8 encoding of their content.\nAll hashes should be encoded as hex.",
+                    "type": "string"
+                },
+                {
+                    "id": "Proof",
+                    "description": "An object representing knowledge of a file's full content.",
+                    "type": "object",
+                    "properties": [
+                        {
+                            "name": "token",
+                            "$ref": "Token"
+                        },
+                        {
+                            "name": "saltedHash",
+                            "$ref": "FileHash"
+                        }
+                    ]
+                }
+            ],
+            "commands": [
+                {
+                    "name": "token",
+                    "description": "Get the token to use when computing the hashes of a given file.",
+                    "parameters": [
+                        {
+                            "name": "hash",
+                            "description": "The file's unsalted hash.",
+                            "$ref": "FileHash"
+                        }
+                    ],
+                    "returns": [
+                        {
+                            "name": "token",
+                            "description": "The token to use to create a proof for this file.",
+                            "$ref": "Token"
+                        },
+                        {
+                            "name": "expiration",
+                            "description": "The unixtime when the token will be invalidated, in seconds.",
+                            "type": "number"
+                        }
+                    ]
+                },
+                {
+                    "name": "exists",
+                    "description": "Check if a given resource already exists on our servers.",
+                    "parameters": [
+                        {
+                            "name": "resource",
+                            "$ref": "Proof"
+                        }
+                    ],
+                    "returns": [
+                        {
+                            "name": "exists",
+                            "type": "boolean"
+                        }
+                    ]
+                },
+                {
+                    "name": "create",
+                    "description": "Upload a file, and for ease of use, get a resource proof for it.",
+                    "parameters": [
+                        {
+                            "name": "content",
+                            "description": "The content you wish to upload.",
+                            "type": "string"
+                        }
+                    ],
+                    "returns": [
+                        {
+                            "name": "resource",
+                            "description": "Proof that can be passed back to the server to reference this asset.",
+                            "$ref": "Proof"
+                        }
+                    ]
+                }
+            ]
+        },
+        {
+            "domain": "Authentication",
+            "description": "The Authentication domain defines a command for authenticating the current user.",
+            "commands": [
+                {
+                    "name": "setAccessToken",
+                    "description": "Set the user's current access token",
+                    "parameters": [
+                        {
+                            "name": "accessToken",
+                            "type": "string"
+                        }
+                    ]
+                }
+            ]
+        },
+        {
             "domain": "Session",
             "description": "The Session domain defines methods for using recording sessions. In order to\ninspect a recording, it must first be loaded into a session via\n<code>Recording.createSession</code>.\n\nAfter the session is created, it may be in an unprocessed or partially\nprocessed state. As documented, some commands do not return until the session\nhas fully processed the recording. Processing starts automatically after the\nsession is created.\n\n<br><br>All commands and events in this domain must include a <code>sessionId</code>.",
+            "sessionId": true,
             "types": [
                 {
                     "id": "SessionId",
                     "description": "Unique identifier for a session which a recording has been loaded into.",
                     "type": "string"
+                },
+                {
+                    "id": "ProcessingLevel",
+                    "description": "Level at which a recording can be processed. After <code>basic</code>\nprocessing, all console messages, sources, paints, and mouse events will\nbe available immediately.",
+                    "type": "string",
+                    "enum": [
+                        "basic"
+                    ]
                 }
             ],
             "commands": [
                 {
                     "name": "ensureProcessed",
-                    "description": "Does not return until the recording is fully processed. Before returning,\n<code>missingRegions</code> and <code>unprocessedRegions</code> events will\nbe periodically emitted."
+                    "description": "Does not return until the recording is fully processed. Before returning,\n<code>missingRegions</code> and <code>unprocessedRegions</code> events will\nbe periodically emitted. Commands which require inspecting the recording\nwill not return until that part of the recording has been processed,\nsee <code>ProcessingLevel</code> for details.",
+                    "parameters": [
+                        {
+                            "name": "level",
+                            "description": "Level at which the recording should be processed before returning.\nDefaults to <code>basic</code> if omitted.",
+                            "optional": true,
+                            "$ref": "ProcessingLevel"
+                        }
+                    ]
                 },
                 {
                     "name": "findMouseEvents",
                     "description": "Find all points in the recording at which a mouse move or click occurred.\nDoes not return until the recording is fully processed. Before returning,\n<code>mouseEvents</code> events will be periodically emitted. The union\nof all these events describes all mouse events in the recording."
+                },
+                {
+                    "name": "findKeyboardEvents",
+                    "description": "Find all points in the recording at which a keyboard event occurred.\nDoes not return until the recording is fully processed. Before returning,\n<code>keyboardEvents</code> events will be periodically emitted. The union\nof all these events describes all keyboard events in the recording."
+                },
+                {
+                    "name": "findNavigationEvents"
+                },
+                {
+                    "name": "findAnnotations",
+                    "description": "Find all points in the recording at which an annotation was added via the\nRecordReplayOnAnnotation driver API. Does not return until the recording\nis fully processed. Before returning, <code>annotations</code> events will\nbe periodically emitted, which describe all annotations in the recording,\nor all annotations of the provided kind.",
+                    "parameters": [
+                        {
+                            "name": "kind",
+                            "description": "Any kind to restrict the returned annotations to.",
+                            "optional": true,
+                            "type": "string"
+                        }
+                    ]
+                },
+                {
+                    "name": "getAnnotationKinds",
+                    "description": "Get the different kinds of annotations in the recording.",
+                    "returns": [
+                        {
+                            "name": "kinds",
+                            "type": "array",
+                            "items": {
+                                "type": "string"
+                            }
+                        }
+                    ]
                 },
                 {
                     "name": "getEndpoint",
@@ -367,6 +576,22 @@
                     "returns": [
                         {
                             "name": "endpoint",
+                            "$ref": "Recording.TimeStampedPoint"
+                        }
+                    ]
+                },
+                {
+                    "name": "getPointNearTime",
+                    "description": "Get a point near a given time in the recording.",
+                    "parameters": [
+                        {
+                            "name": "time",
+                            "type": "number"
+                        }
+                    ],
+                    "returns": [
+                        {
+                            "name": "point",
                             "$ref": "Recording.TimeStampedPoint"
                         }
                     ]
@@ -409,6 +634,43 @@
                             "$ref": "Pause.PauseId"
                         }
                     ]
+                },
+                {
+                    "name": "listenForLoadChanges",
+                    "description": "Listen for changes in the loading status of parts of the recording.\nDoes not return until the session has been released. Before returning,\n<code>loadedRegions</code> events will be emitted when their status changes.\nBy default, the entire recording is loaded. If the recording is long enough,\nearlier loaded regions may be unloaded to reduce backend resource usage.\nPauses cannot be created or used in unloaded parts of the recording,\nand execution information for analyses and other commands like\n<code>Debugger.getHitCounts</code> will not be available."
+                },
+                {
+                    "name": "loadRegion",
+                    "description": "Request that an unloaded part of the recording start loading.\n\nAfter this command returns, any future commands that are sent will use the\nnew loading set of regions, and might need to wait until they finish loading\nbefore they return.\n\nCommands which are sent before this returns or which were still in progress\nwhen this was sent may use either the earlier loaded regions, the newly\nloaded regions, or some combination of the two.",
+                    "parameters": [
+                        {
+                            "name": "region",
+                            "description": "Region to load.",
+                            "$ref": "Recording.TimeRange"
+                        }
+                    ]
+                },
+                {
+                    "name": "unloadRegion",
+                    "description": "Request that part of the recording be unloaded. As for <code>Session.loadRegion</code>,\nthe newly loaded regions will take effect after the command returns, and commands\nwhich are sent before this returns or are in progress when it is sent may or may\nnot use the newly loaded regions.",
+                    "parameters": [
+                        {
+                            "name": "region",
+                            "description": "Region to unload.",
+                            "$ref": "Recording.TimeRange"
+                        }
+                    ]
+                },
+                {
+                    "name": "getBuildId",
+                    "description": "Get the identifier of the build used to produce the recording.",
+                    "returns": [
+                        {
+                            "name": "buildId",
+                            "description": "Build identifier originally passed to the RecordReplayAttach API when\nrecording. The build ID includes the platform, target (e.g. gecko,\nchromium, or node), build date, and a unique identifier. The format\nof a build ID is not currently consistent between platforms, and is\nsubject to change over time.",
+                            "type": "string"
+                        }
+                    ]
                 }
             ],
             "events": [
@@ -431,11 +693,16 @@
                     "description": "Event describing regions of the recording that have not been processed.",
                     "parameters": [
                         {
+                            "name": "level",
+                            "description": "Level at which the regions are unprocessed.",
+                            "$ref": "ProcessingLevel"
+                        },
+                        {
                             "name": "regions",
-                            "description": "Any missing regions are also unprocessed regions.",
+                            "description": "Regions of the recording that haven't been processed at the associated\nlevel.",
                             "type": "array",
                             "items": {
-                                "$ref": "Recording.TimeRange"
+                                "$ref": "Recording.TimeStampedPointRange"
                             }
                         }
                     ]
@@ -452,16 +719,117 @@
                             }
                         }
                     ]
+                },
+                {
+                    "name": "keyboardEvents",
+                    "description": "Describes some keyboard events that occur in the recording.",
+                    "parameters": [
+                        {
+                            "name": "events",
+                            "type": "array",
+                            "items": {
+                                "$ref": "Recording.KeyboardEvent"
+                            }
+                        }
+                    ]
+                },
+                {
+                    "name": "navigationEvents",
+                    "description": "Describes some navigate events that occur in the recording.",
+                    "parameters": [
+                        {
+                            "name": "events",
+                            "type": "array",
+                            "items": {
+                                "$ref": "Recording.NavigationEvent"
+                            }
+                        }
+                    ]
+                },
+                {
+                    "name": "annotations",
+                    "description": "Describes some annotations in the recording.",
+                    "parameters": [
+                        {
+                            "name": "annotations",
+                            "type": "array",
+                            "items": {
+                                "$ref": "Recording.Annotation"
+                            }
+                        }
+                    ]
+                },
+                {
+                    "name": "loadedRegions",
+                    "description": "Describes the regions of the recording which are loading or loaded.",
+                    "parameters": [
+                        {
+                            "name": "loaded",
+                            "description": "Timespans which are fully loaded.",
+                            "type": "array",
+                            "items": {
+                                "$ref": "Recording.TimeStampedPointRange"
+                            }
+                        },
+                        {
+                            "name": "loading",
+                            "description": "Timespans which are in the process of loading. Pauses in these regions\ncan still be used, but will be slower.",
+                            "type": "array",
+                            "items": {
+                                "$ref": "Recording.TimeStampedPointRange"
+                            }
+                        },
+                        {
+                            "name": "indexed",
+                            "description": "Timespans which have been indexed. Note: Indexed timespans are a subset\nof loading in the same way that loaded is a subset of loading.",
+                            "type": "array",
+                            "items": {
+                                "$ref": "Recording.TimeStampedPointRange"
+                            }
+                        }
+                    ]
+                },
+                {
+                    "name": "newMetric",
+                    "description": "Placeholder event for metrics being emitted.",
+                    "parameters": [
+                        {
+                            "name": "data",
+                            "type": "object"
+                        }
+                    ]
+                },
+                {
+                    "name": "experimentalEvent",
+                    "description": "An event indicating that something happened in a way that is not yet officially\nsupported in the protocol. This will only be emitted for sessions which\nspecified experimental settings when they were created.",
+                    "parameters": [
+                        {
+                            "name": "kind",
+                            "description": "Kind of the event.",
+                            "type": "string"
+                        },
+                        {
+                            "name": "data",
+                            "description": "Any associated data for the event.",
+                            "optional": true,
+                            "type": "object"
+                        }
+                    ]
                 }
             ]
         },
         {
             "domain": "Graphics",
             "description": "The Graphics domain defines methods for accessing a recording's graphics data.\n\n<br><br>All commands and events in this domain must include a <code>sessionId</code>.",
+            "sessionId": true,
             "commands": [
                 {
                     "name": "findPaints",
                     "description": "Find all points in the recording at which paints occurred. Does not return\nuntil the recording is fully processed. Before returning,\n<code>paintPoints</code> events will be periodically emitted. The union\nof all these events describes all paint points in the recording."
+                },
+                {
+                    "name": "getPlaybackVideo",
+                    "description": "Get the playback video data for this session.  Does not return until the\nrecording is fully processed. Before returning,\n<code>playbackVideoFragment</code> events will be periodically emitted. The\nconcatenation of all these events constitutes the playback video data."
                 },
                 {
                     "name": "getPaintContents",
@@ -516,6 +884,16 @@
                             }
                         }
                     ]
+                },
+                {
+                    "name": "playbackVideoFragment",
+                    "description": "Describes the next fragment of playback video data, as part of the response\nto the getPlaybackVideo request.",
+                    "parameters": [
+                        {
+                            "name": "fragment",
+                            "type": "string"
+                        }
+                    ]
                 }
             ],
             "types": [
@@ -559,6 +937,11 @@
                             "name": "data",
                             "description": "Raw graphics data encoded in base64.",
                             "type": "string"
+                        },
+                        {
+                            "name": "scale",
+                            "description": "The size of a CSS pixel relative to a pixel in this screenshot",
+                            "type": "number"
                         }
                     ]
                 },
@@ -581,26 +964,27 @@
         },
         {
             "domain": "Debugger",
-            "description": "The Debugger domain defines methods for accessing JS scripts and navigating\naround the recording using breakpoints, stepping, and so forth.\n\n<br><br>All commands and events in this domain must include a <code>sessionId</code>.",
+            "description": "The Debugger domain defines methods for accessing sources in the recording\nand navigating around the recording using breakpoints, stepping, and so forth.\n\n<br><br>All commands and events in this domain must include a <code>sessionId</code>.",
+            "sessionId": true,
             "commands": [
                 {
-                    "name": "findScripts",
-                    "description": "Find all scripts in the recording. Does not return until the recording is\nfully processed. Before returning, <code>scriptParsed</code> events will be\nemitted for every script in the recording."
+                    "name": "findSources",
+                    "description": "Find all sources in the recording. Does not return until the recording is\nfully processed. Before returning, <code>newSource</code> events will be\nemitted for every source in the recording."
                 },
                 {
-                    "name": "getScriptSource",
-                    "description": "Get the source contents of a script.",
+                    "name": "getSourceContents",
+                    "description": "Get the contents of a source.",
                     "parameters": [
                         {
-                            "name": "scriptId",
-                            "description": "Script to fetch the source for.",
-                            "$ref": "ScriptId"
+                            "name": "sourceId",
+                            "description": "Source to fetch the contents for.",
+                            "$ref": "SourceId"
                         }
                     ],
                     "returns": [
                         {
-                            "name": "scriptSource",
-                            "description": "Source contents of the script.",
+                            "name": "contents",
+                            "description": "Contents of the source.",
                             "type": "string"
                         },
                         {
@@ -611,41 +995,147 @@
                     ]
                 },
                 {
-                    "name": "getPossibleBreakpoints",
-                    "description": "Get a compact representation of the locations where breakpoints can be set\nin a region of a script.",
+                    "name": "getSourceMap",
+                    "description": "Get the sourcemap of a source.",
                     "parameters": [
                         {
-                            "name": "scriptId",
-                            "description": "Script to return breakpoint locations for.",
-                            "$ref": "ScriptId"
+                            "name": "sourceId",
+                            "description": "Source to fetch the sourcemap for.",
+                            "$ref": "SourceId"
+                        }
+                    ],
+                    "returns": [
+                        {
+                            "name": "contents",
+                            "description": "The sourcemap of the source (if there is one).",
+                            "optional": true,
+                            "type": "string"
+                        }
+                    ]
+                },
+                {
+                    "name": "getPossibleBreakpoints",
+                    "description": "Get a compact representation of the locations where breakpoints can be set\nin a region of a source.",
+                    "parameters": [
+                        {
+                            "name": "sourceId",
+                            "description": "Source to return breakpoint locations for.",
+                            "$ref": "SourceId"
                         },
                         {
                             "name": "begin",
                             "description": "If specified, earlier breakpoint locations will be excluded.",
                             "optional": true,
-                            "$ref": "ScriptLocation"
+                            "$ref": "SourceLocation"
                         },
                         {
                             "name": "end",
                             "description": "If specified, later breakpoint locations will be excluded.",
                             "optional": true,
-                            "$ref": "ScriptLocation"
+                            "$ref": "SourceLocation"
                         }
                     ],
                     "returns": [
                         {
                             "name": "lineLocations",
-                            "description": "All breakpoint locations in the specified script and range.",
+                            "description": "All breakpoint locations in the specified source and range.",
                             "type": "array",
                             "items": {
-                                "$ref": "SameLineScriptLocations"
+                                "$ref": "SameLineSourceLocations"
+                            }
+                        }
+                    ]
+                },
+                {
+                    "name": "getHitCounts",
+                    "description": "Get a HitCount object for each of the given locations in the given sourceId.\nCounts will only be computed for regions in the recording which are loaded.",
+                    "parameters": [
+                        {
+                            "name": "locations",
+                            "description": "Locations for which to retrieve hit counts. Can be chained with the\nreturn value of `Debugger.getPossibleBreakpoints`.",
+                            "type": "array",
+                            "items": {
+                                "$ref": "SameLineSourceLocations"
+                            }
+                        },
+                        {
+                            "name": "sourceId",
+                            "description": "Source to return breakpoint locations for.",
+                            "type": "string"
+                        },
+                        {
+                            "name": "maxHits",
+                            "description": "Max number of hit counts to report for each location. For locations with\nmany hits, reducing this number will make the command run faster.",
+                            "optional": true,
+                            "type": "number"
+                        },
+                        {
+                            "name": "range",
+                            "description": "Any subrange of the recording to restrict the hit counts to.",
+                            "optional": true,
+                            "$ref": "Recording.PointRange"
+                        }
+                    ],
+                    "returns": [
+                        {
+                            "name": "hits",
+                            "description": "Hit counts for the given locations.",
+                            "type": "array",
+                            "items": {
+                                "$ref": "HitCount"
+                            }
+                        }
+                    ]
+                },
+                {
+                    "name": "getEventHandlerCount",
+                    "description": "Get the number of times handlers for a type of event executed.",
+                    "parameters": [
+                        {
+                            "name": "eventType",
+                            "description": "Type of event to get the handler count for.",
+                            "$ref": "EventHandlerType"
+                        },
+                        {
+                            "name": "range",
+                            "description": "Any subrange of the recording to restrict the returned events to.",
+                            "optional": true,
+                            "$ref": "Recording.PointRange"
+                        }
+                    ],
+                    "returns": [
+                        {
+                            "name": "count",
+                            "description": "How many times handlers for the event type executed.",
+                            "type": "integer"
+                        }
+                    ]
+                },
+                {
+                    "name": "searchSourceContents",
+                    "parameters": [
+                        {
+                            "name": "searchId",
+                            "type": "string"
+                        },
+                        {
+                            "name": "query",
+                            "type": "string"
+                        },
+                        {
+                            "name": "sourceIds",
+                            "description": "The sources to search (in the given order).\nIf not specified, all sources will be searched.",
+                            "optional": true,
+                            "type": "array",
+                            "items": {
+                                "$ref": "SourceId"
                             }
                         }
                     ]
                 },
                 {
                     "name": "getMappedLocation",
-                    "description": "Get the mapped location for a script location.",
+                    "description": "Get the mapped location for a source location.",
                     "parameters": [
                         {
                             "name": "location",
@@ -802,80 +1292,141 @@
                     ]
                 },
                 {
-                    "name": "blackboxScript",
-                    "description": "Blackbox a script or a region in it. Resume commands like\n<code>findResumeTarget</code> will not return execution points in\nblackboxed regions of a script.",
+                    "name": "blackboxSource",
+                    "description": "Blackbox a source or a region in it. Resume commands like\n<code>findResumeTarget</code> will not return execution points in\nblackboxed regions of a source.",
                     "parameters": [
                         {
-                            "name": "scriptId",
-                            "description": "Script to blackbox.",
-                            "$ref": "ScriptId"
+                            "name": "sourceId",
+                            "description": "Source to blackbox.",
+                            "$ref": "SourceId"
                         },
                         {
                             "name": "begin",
                             "description": "If specified, earlier locations will keep their blackbox state.",
                             "optional": true,
-                            "$ref": "ScriptLocation"
+                            "$ref": "SourceLocation"
                         },
                         {
                             "name": "end",
                             "description": "If specified, later locations will keep their blackbox state.",
                             "optional": true,
-                            "$ref": "ScriptLocation"
+                            "$ref": "SourceLocation"
                         }
                     ]
                 },
                 {
-                    "name": "unblackboxScript",
-                    "description": "Unblackbox a script or a region in it.",
+                    "name": "unblackboxSource",
+                    "description": "Unblackbox a source or a region in it.",
                     "parameters": [
                         {
-                            "name": "scriptId",
-                            "description": "Script to unblackbox.",
-                            "$ref": "ScriptId"
+                            "name": "sourceId",
+                            "description": "Source to unblackbox.",
+                            "$ref": "SourceId"
                         },
                         {
                             "name": "begin",
                             "description": "If specified, earlier locations will keep their blackbox state.",
                             "optional": true,
-                            "$ref": "ScriptLocation"
+                            "$ref": "SourceLocation"
                         },
                         {
                             "name": "end",
                             "description": "If specified, later locations will keep their blackbox state.",
                             "optional": true,
-                            "$ref": "ScriptLocation"
+                            "$ref": "SourceLocation"
+                        }
+                    ]
+                },
+                {
+                    "name": "searchFunctions",
+                    "description": "Get the function names that match a query.",
+                    "parameters": [
+                        {
+                            "name": "searchId",
+                            "type": "string"
+                        },
+                        {
+                            "name": "query",
+                            "type": "string"
+                        },
+                        {
+                            "name": "sourceIds",
+                            "description": "The sources to search (in the given order).\nIf not specified, all sources will be searched.",
+                            "optional": true,
+                            "type": "array",
+                            "items": {
+                                "$ref": "SourceId"
+                            }
                         }
                     ]
                 }
             ],
             "events": [
                 {
-                    "name": "scriptParsed",
-                    "description": "Describes a script that was successfully parsed.",
+                    "name": "newSource",
+                    "description": "Describes a source in the recording.",
                     "parameters": [
                         {
-                            "name": "scriptId",
-                            "description": "ID for the script.",
-                            "$ref": "ScriptId"
+                            "name": "sourceId",
+                            "description": "ID for the source.",
+                            "$ref": "SourceId"
                         },
                         {
                             "name": "kind",
-                            "description": "Kind of script.",
-                            "$ref": "ScriptKind"
+                            "description": "Kind of the source.",
+                            "$ref": "SourceKind"
                         },
                         {
                             "name": "url",
-                            "description": "URL of the script. Omitted for dynamically generated scripts (from eval etc.).",
+                            "description": "URL of the source. Omitted for dynamically generated sources (from eval etc.).",
                             "optional": true,
                             "type": "string"
                         },
                         {
-                            "name": "generatedScriptIds",
-                            "description": "If this is an original script, the IDs of the scripts which were generated from\nthis one.",
+                            "name": "generatedSourceIds",
+                            "description": "If this is an original source, the IDs of the sources which were generated from\nthis one.",
                             "optional": true,
                             "type": "array",
                             "items": {
-                                "$ref": "ScriptId"
+                                "$ref": "SourceId"
+                            }
+                        },
+                        {
+                            "name": "contentHash",
+                            "description": "The hash of the source's content.\nThis is set for all sources except pretty printed ones.",
+                            "optional": true,
+                            "type": "string"
+                        }
+                    ]
+                },
+                {
+                    "name": "searchSourceContentsMatches",
+                    "parameters": [
+                        {
+                            "name": "searchId",
+                            "type": "string"
+                        },
+                        {
+                            "name": "matches",
+                            "type": "array",
+                            "items": {
+                                "$ref": "SearchSourceContentsMatch"
+                            }
+                        }
+                    ]
+                },
+                {
+                    "name": "functionsMatches",
+                    "parameters": [
+                        {
+                            "name": "searchId",
+                            "type": "string"
+                        },
+                        {
+                            "name": "matches",
+                            "type": "array",
+                            "items": {
+                                "$ref": "FunctionMatch"
                             }
                         }
                     ]
@@ -883,13 +1434,13 @@
             ],
             "types": [
                 {
-                    "id": "ScriptId",
-                    "description": "Unique ID for a script.",
+                    "id": "SourceId",
+                    "description": "Unique ID for a source.",
                     "type": "string"
                 },
                 {
-                    "id": "ScriptKind",
-                    "description": "Kind of a script.\n<br>\n<br><code>inlineScript</code>: Inline contents of a <code>script</code> element.\n<br><code>scriptSource</code>: Script loaded via the <code>src</code> attribute\n  of a <code>script</code> element.\n<br><code>other</code>: An unspecified kind of script. This does not include any\n  original scripts.\n<br><code>html</code>: An entire HTML page containing one or more inline scripts.\n  This is an original script whose generated scripts are the inline scripts.\n<br><code>sourceMapped</code>: A source script specified by a source map.\n  This is an original script whose generated script is associated with the source map.\n  Source mapped scripts are only available when the source map and its sources have been\n  associated with the recording via <code>Internal.addRecordingResource</code>.\n<br><code>prettyPrinted</code>: An original script which was produced by pretty\n  printing the associated generated script. Pretty printed scripts will\n  automatically be created for other scripts which appear to contain minified\n  code, including HTML page scripts. <code>scriptParsed</code> events will be\n  emitted for a pretty printed script before the generated script.\n<br><br>",
+                    "id": "SourceKind",
+                    "description": "Kind of a source.\n<br>\n<br><code>inlineScript</code>: Inline contents of a <code>script</code> element.\n<br><code>scriptSource</code>: Script loaded via the <code>src</code> attribute\n  of a <code>script</code> element.\n<br><code>other</code>: An unspecified kind of source. This does not include any\n  original sources.\n<br><code>html</code>: An entire HTML page containing one or more inline scripts.\n  This is an original source whose generated sources are the inline scripts.\n<br><code>sourceMapped</code>: An original source specified by a source map.\n  This will have a generated source associated with the source map.\n  The source map and its sources must have been\n  associated with the recording via <code>Recording.addSourceMap</code> and\n  <code>Recording.addOriginalSource</code>.\n<br><code>prettyPrinted</code>: An original source which was produced by pretty\n  printing the associated generated source. Pretty printed sources will\n  automatically be created for other sources which appear to contain minified\n  code, including HTML page sources. <code>newSource</code> events will be\n  emitted for a pretty printed source before the generated source.\n<br><br>",
                     "type": "string",
                     "enum": [
                         "inlineScript",
@@ -902,7 +1453,7 @@
                 },
                 {
                     "id": "ContentType",
-                    "description": "Possible content types for script sources.",
+                    "description": "Possible content types for sources.",
                     "type": "string",
                     "enum": [
                         "text/javascript",
@@ -910,25 +1461,72 @@
                     ]
                 },
                 {
-                    "id": "ScriptLocation",
-                    "description": "Location within a particular script.",
+                    "id": "HitCount",
+                    "description": "A combination of a location and the number of times that location was hit\nduring the execution of the currently loaded regions.",
                     "type": "object",
                     "properties": [
                         {
-                            "name": "line",
-                            "description": "1-indexed line in the script's source.",
-                            "type": "integer"
+                            "name": "location",
+                            "description": "Location of the hits.",
+                            "$ref": "Location"
                         },
                         {
-                            "name": "column",
-                            "description": "0-indexed column in the script's source.",
+                            "name": "hits",
+                            "description": "Number of times this location was hit in loaded regions.",
                             "type": "integer"
                         }
                     ]
                 },
                 {
-                    "id": "SameLineScriptLocations",
-                    "description": "Set of locations which are all on the same line of the same script.",
+                    "id": "EventHandlerType",
+                    "description": "Type of an event which handlers can be associated with.",
+                    "type": "string"
+                },
+                {
+                    "id": "SearchSourceContentsMatch",
+                    "type": "object",
+                    "properties": [
+                        {
+                            "name": "location",
+                            "$ref": "Location"
+                        },
+                        {
+                            "name": "context",
+                            "description": "Some snippet of text from around the match",
+                            "type": "string"
+                        },
+                        {
+                            "name": "contextStart",
+                            "description": "The beginning of the match within the context snippet",
+                            "$ref": "SourceLocation"
+                        },
+                        {
+                            "name": "contextEnd",
+                            "description": "The end of the match within the context snippet",
+                            "$ref": "SourceLocation"
+                        }
+                    ]
+                },
+                {
+                    "id": "SourceLocation",
+                    "description": "Location within a particular source.",
+                    "type": "object",
+                    "properties": [
+                        {
+                            "name": "line",
+                            "description": "1-indexed line in the source.",
+                            "type": "integer"
+                        },
+                        {
+                            "name": "column",
+                            "description": "0-indexed column in the source.",
+                            "type": "integer"
+                        }
+                    ]
+                },
+                {
+                    "id": "SameLineSourceLocations",
+                    "description": "Set of locations which are all on the same line of the same source.",
                     "type": "object",
                     "properties": [
                         {
@@ -948,18 +1546,18 @@
                 },
                 {
                     "id": "Location",
-                    "description": "Location within a script.",
-                    "$ref": "ScriptLocation",
+                    "description": "Location within a source.",
+                    "$ref": "SourceLocation",
                     "properties": [
                         {
-                            "name": "scriptId",
-                            "$ref": "ScriptId"
+                            "name": "sourceId",
+                            "$ref": "SourceId"
                         }
                     ]
                 },
                 {
                     "id": "MappedLocation",
-                    "description": "A location in a generated scripts, along with corresponding locations in any\noriginal scripts which the generated script was source mapped from.\nThe generated script location is the first element of the array.",
+                    "description": "A location in a generated source, along with corresponding locations in any\noriginal sources which the generated source was source mapped from.\nThe generated location is the first element of the array.",
                     "type": "array",
                     "items": {
                         "$ref": "Location"
@@ -1005,16 +1603,71 @@
                             "$ref": "PauseReason"
                         }
                     ]
+                },
+                {
+                    "id": "FunctionMatch",
+                    "type": "object",
+                    "properties": [
+                        {
+                            "name": "loc",
+                            "$ref": "Location"
+                        },
+                        {
+                            "name": "name",
+                            "type": "string"
+                        }
+                    ]
+                },
+                {
+                    "id": "PersistentObjectId",
+                    "description": "Identifier for a JS object that persists through the lifetime of that object,\nunlike Pause.ObjectId which can use different IDs for the same JS object in\ndifferent pauses.",
+                    "type": "string"
                 }
             ]
         },
         {
             "domain": "Console",
             "description": "The Console domain defines methods for accessing messages reported to the console.\n\n<br><br>All commands and events in this domain must include a <code>sessionId</code>.",
+            "sessionId": true,
             "commands": [
                 {
                     "name": "findMessages",
-                    "description": "Find all messages in the recording. Does not return until the recording is\nfully processed. Before returning, <code>newMessage</code> events will be\nemitted for every console message in the recording."
+                    "description": "Find all messages in the recording. Does not return until the recording is\nfully processed. Before returning, <code>newMessage</code> events will be\nemitted for every console message in the recording.",
+                    "returns": [
+                        {
+                            "name": "overflow",
+                            "description": "Set if there were too many messages and not all were returned.",
+                            "optional": true,
+                            "type": "boolean"
+                        }
+                    ]
+                },
+                {
+                    "name": "findMessagesInRange",
+                    "description": "Find all messages in one area of a recording. Useful if finding all messages in\nthe recording overflowed.",
+                    "parameters": [
+                        {
+                            "name": "range",
+                            "description": "Subrange of the recording to find messages within.",
+                            "$ref": "Recording.PointRange"
+                        }
+                    ],
+                    "returns": [
+                        {
+                            "name": "messages",
+                            "description": "Messages within the specified range.",
+                            "type": "array",
+                            "items": {
+                                "$ref": "Message"
+                            }
+                        },
+                        {
+                            "name": "overflow",
+                            "description": "Whether there were too many messages and not all were returned.",
+                            "optional": true,
+                            "type": "boolean"
+                        }
+                    ]
                 }
             ],
             "events": [
@@ -1058,10 +1711,10 @@
                             "type": "string"
                         },
                         {
-                            "name": "scriptId",
-                            "description": "Any script associated with the message.",
+                            "name": "sourceId",
+                            "description": "Any source associated with the message.",
                             "optional": true,
-                            "$ref": "Debugger.ScriptId"
+                            "$ref": "Debugger.SourceId"
                         },
                         {
                             "name": "line",
@@ -1133,6 +1786,8 @@
         {
             "domain": "Pause",
             "description": "The Pause domain is used to inspect the state of the program when it is paused\nat particular execution points.\n\n<br><br>All commands and events in this domain must include both a <code>sessionId</code>\nand a <code>pauseId</code>.",
+            "sessionId": true,
+            "pauseId": true,
             "types": [
                 {
                     "id": "PauseId",
@@ -1169,7 +1824,7 @@
                     "properties": [
                         {
                             "name": "value",
-                            "description": "For non-object values that are valid JSON values.",
+                            "description": "For non-object values that are valid JSON values.\nLong strings may be truncated.",
                             "optional": true,
                             "type": "any"
                         },
@@ -1188,6 +1843,12 @@
                         {
                             "name": "bigint",
                             "description": "String representation of a bigint.",
+                            "optional": true,
+                            "type": "string"
+                        },
+                        {
+                            "name": "symbol",
+                            "description": "String representation of a symbol.",
                             "optional": true,
                             "type": "string"
                         },
@@ -1258,7 +1919,7 @@
                         },
                         {
                             "name": "originalScopeChain",
-                            "description": "Alternate scope chain determined from any source map for the frame's\nscript. This can be structured differently and include different names\nthan the normal scope chain.",
+                            "description": "Alternate scope chain determined from any source map for the frame's\ngenerated source. This can be structured differently and include\ndifferent names than the normal scope chain.",
                             "optional": true,
                             "type": "array",
                             "items": {
@@ -1358,6 +2019,12 @@
                             "description": "Any preview data available for the object's contents.",
                             "optional": true,
                             "$ref": "ObjectPreview"
+                        },
+                        {
+                            "name": "persistentId",
+                            "description": "Any persistent ID for this object.",
+                            "optional": true,
+                            "$ref": "Debugger.PersistentObjectId"
                         }
                     ]
                 },
@@ -1368,7 +2035,7 @@
                     "properties": [
                         {
                             "name": "overflow",
-                            "description": "Set if there are additional contents not in this preview.",
+                            "description": "Set if there are additional contents not in this preview which can be\nobtained by getting a \"full\" preview.",
                             "optional": true,
                             "type": "boolean"
                         },
@@ -1424,6 +2091,18 @@
                             "type": "integer"
                         },
                         {
+                            "name": "proxyState",
+                            "description": "For Proxy objects, the target and handler.",
+                            "optional": true,
+                            "$ref": "ProxyStateData"
+                        },
+                        {
+                            "name": "promiseState",
+                            "description": "For Promise objects, the resolution state.",
+                            "optional": true,
+                            "$ref": "PromiseStateData"
+                        },
+                        {
                             "name": "functionName",
                             "description": "For Function objects, the name of the function.\nOmitted for functions with no name.",
                             "optional": true,
@@ -1440,7 +2119,7 @@
                         },
                         {
                             "name": "functionLocation",
-                            "description": "For scripted Function objects, the location of the function.",
+                            "description": "For Function objects, any associated source location.",
                             "optional": true,
                             "$ref": "Debugger.MappedLocation"
                         },
@@ -1492,6 +2171,12 @@
                             "description": "Any setter function if this is an accessor property.",
                             "optional": true,
                             "$ref": "ObjectId"
+                        },
+                        {
+                            "name": "isSymbol",
+                            "description": "Set if this property's name is a symbol.",
+                            "optional": true,
+                            "type": "boolean"
                         }
                     ]
                 },
@@ -1514,6 +2199,51 @@
                         {
                             "name": "value",
                             "description": "This entry's value.",
+                            "$ref": "Value"
+                        }
+                    ]
+                },
+                {
+                    "id": "PromiseState",
+                    "description": "The possible states for a promise.",
+                    "type": "string",
+                    "enum": [
+                        "pending",
+                        "fulfilled",
+                        "rejected"
+                    ]
+                },
+                {
+                    "id": "PromiseStateData",
+                    "description": "The internal state data of a promise.",
+                    "type": "object",
+                    "properties": [
+                        {
+                            "name": "state",
+                            "description": "The resolution state.",
+                            "$ref": "PromiseState"
+                        },
+                        {
+                            "name": "value",
+                            "description": "The fulfilled/rejected value, if not pending.",
+                            "optional": true,
+                            "$ref": "Value"
+                        }
+                    ]
+                },
+                {
+                    "id": "ProxyStateData",
+                    "description": "The internal state data of a proxy.",
+                    "type": "object",
+                    "properties": [
+                        {
+                            "name": "target",
+                            "description": "The target value the proxy was initialized with. May reference an object or null.",
+                            "$ref": "Value"
+                        },
+                        {
+                            "name": "handler",
+                            "description": "The handler value the proxy was initialized with. May reference an object or null.",
                             "$ref": "Value"
                         }
                     ]
@@ -1581,7 +2311,7 @@
                 },
                 {
                     "id": "ObjectPreviewLevel",
-                    "description": "Levels of detail for an object preview.\n<br>\n<br><code>none</code>: Don't actually generate a preview, but just an <code>Object</code>\n  with non-preview information.\n<br><code>noProperties</code>: Generate an overflowing preview with no properties.\n<br><code>canOverflow</code>: Generate a preview with some properties.\n  If there are too many properties, some may be omitted and the preview will overflow.\n<br><code>full</code>: Generate a non-overflowing preview with all properties.\n<br><br>",
+                    "description": "Levels of detail for an object preview.\n<br>\n<br><code>none</code>: Don't actually generate a preview, but just an <code>Object</code>\n  with non-preview information.\n<br><code>noProperties</code>: Generate an overflowing preview with no properties.\n<br><code>canOverflow</code>: Generate a preview with some properties.\n  If there are too many properties, some may be omitted and the preview will overflow.\n<br><code>full</code>: Generate a non-overflowing preview with as many properties as possible.\n  For very large objects, some properties may be omitted from the result.\n<br><br>",
                     "type": "string",
                     "enum": [
                         "none",
@@ -1607,13 +2337,10 @@
                             "type": "string"
                         },
                         {
-                            "name": "bindings",
-                            "description": "Any extra bindings to add to the evaluation's scope.",
+                            "name": "pure",
+                            "description": "Execute the expression without side-effects. Usage of this parameter\nwill result in an error response if the target has not opted in to the\n'pureEval' capability. If a target has not opted in, it may assume\nthat this parameter will always be false.",
                             "optional": true,
-                            "type": "array",
-                            "items": {
-                                "$ref": "NamedValue"
-                            }
+                            "type": "boolean"
                         },
                         {
                             "name": "useOriginalScopes",
@@ -1640,13 +2367,10 @@
                             "type": "string"
                         },
                         {
-                            "name": "bindings",
-                            "description": "Any extra bindings to add to the evaluation's scope.",
+                            "name": "pure",
+                            "description": "Execute the expression without side-effects. Usage of this parameter\nwill result in an error response if the target has not opted in to the\n'pureEval' capability. If a target has not opted in, it may assume\nthat this parameter will always be false.",
                             "optional": true,
-                            "type": "array",
-                            "items": {
-                                "$ref": "NamedValue"
-                            }
+                            "type": "boolean"
                         }
                     ],
                     "returns": [
@@ -1790,7 +2514,8 @@
                     "returns": [
                         {
                             "name": "frame",
-                            "description": "ID of the topmost frame.",
+                            "description": "ID of the topmost frame, if there is one.",
+                            "optional": true,
                             "$ref": "FrameId"
                         },
                         {
@@ -1845,7 +2570,7 @@
                 },
                 {
                     "name": "getFrameSteps",
-                    "description": "Get the points of all steps that are executed by a frame.",
+                    "description": "Get the points of all steps that are executed by a frame.\n\nIf this is a generator frame then steps from all places where the frame\nexecuted will be returned, except in parts of the recording are unloaded\n(see <code>Session.listenForLoadChanges</code>).",
                     "parameters": [
                         {
                             "name": "frameId",
@@ -1886,6 +2611,8 @@
         {
             "domain": "DOM",
             "description": "The DOM domain is used to inspect the DOM at particular execution points.\nInspecting the DOM requires a <code>Pause.PauseId</code>, and DOM nodes\nare identified by a <code>Pause.ObjectId</code>.\n\n<br><br>All commands and events in this domain must include both a <code>sessionId</code>\nand a <code>pauseId</code>.",
+            "sessionId": true,
+            "pauseId": true,
             "commands": [
                 {
                     "name": "getDocument",
@@ -2049,6 +2776,23 @@
                             "name": "data",
                             "description": "Any data associated with the returned nodes, including all parent nodes\nup to the root document.",
                             "$ref": "Pause.PauseData"
+                        }
+                    ]
+                },
+                {
+                    "name": "repaintGraphics",
+                    "description": "Paint the state of the DOM at this pause, even if no equivalent paint\noccurred when originally recording. In the latter case a best-effort attempt\nwill be made to paint the current graphics, but the result might not be\nidentical to what would have originally been drawn while recording.",
+                    "returns": [
+                        {
+                            "name": "description",
+                            "description": "Description of the resulting screen shot.",
+                            "$ref": "Graphics.ScreenShotDescription"
+                        },
+                        {
+                            "name": "screenShot",
+                            "description": "Contents of the screen shot. If an identical screen shot was previously\nreturned, this will be omitted.",
+                            "optional": true,
+                            "$ref": "Graphics.ScreenShot"
                         }
                     ]
                 }
@@ -2227,6 +2971,33 @@
                     }
                 },
                 {
+                    "id": "ClipBounds",
+                    "description": "Clipping bounds that are applied to an element. These come from an ancestor\nelement that has the CSS overflow property set. Bounds that have no effect\non the element are left out.",
+                    "type": "object",
+                    "properties": [
+                        {
+                            "name": "left",
+                            "optional": true,
+                            "type": "number"
+                        },
+                        {
+                            "name": "top",
+                            "optional": true,
+                            "type": "number"
+                        },
+                        {
+                            "name": "right",
+                            "optional": true,
+                            "type": "number"
+                        },
+                        {
+                            "name": "bottom",
+                            "optional": true,
+                            "type": "number"
+                        }
+                    ]
+                },
+                {
                     "id": "NodeBounds",
                     "description": "Describes the bounding client rect for a node.",
                     "type": "object",
@@ -2238,8 +3009,35 @@
                         },
                         {
                             "name": "rect",
-                            "description": "Bounding client rect for the node.",
+                            "description": "Bounding client rect for the node. This is the smallest rect that\nincludes all client rects.",
                             "$ref": "Rect"
+                        },
+                        {
+                            "name": "rects",
+                            "description": "All client rects for the node if there is more than one.",
+                            "optional": true,
+                            "type": "array",
+                            "items": {
+                                "$ref": "Rect"
+                            }
+                        },
+                        {
+                            "name": "clipBounds",
+                            "description": "Clipping bounds for the node.",
+                            "optional": true,
+                            "$ref": "ClipBounds"
+                        },
+                        {
+                            "name": "visibility",
+                            "description": "Set to <code>\"hidden\"</code> for nodes with that CSS property",
+                            "optional": true,
+                            "type": "string"
+                        },
+                        {
+                            "name": "pointerEvents",
+                            "description": "Set to <code>\"none\"</code> for nodes with that CSS property",
+                            "optional": true,
+                            "type": "string"
                         }
                     ]
                 }
@@ -2248,6 +3046,8 @@
         {
             "domain": "CSS",
             "description": "The CSS domain is used to inspect the CSS state at particular execution points.\n\n<br><br>All commands and events in this domain must include both a <code>sessionId</code>\nand a <code>pauseId</code>.",
+            "sessionId": true,
+            "pauseId": true,
             "commands": [
                 {
                     "name": "getComputedStyle",
@@ -2466,7 +3266,8 @@
         },
         {
             "domain": "Analysis",
-            "description": "The Analysis domain is used to efficiently analyze the program state at many\nexecution points. Analysis specifications are based on the MapReduce\nalgorithm: a map operation is performed on all the execution points of\ninterest, and the results are reduced to a summary afterwards.\n\n<br><br>The life cycle of an analysis is as follows. First, use <code>createAnalysis</code>\nto create the analysis and specify its map and reduce operations. Next, use one\nor more other commands to specify the set of execution points to apply the\nanalysis to. Finally, use <code>runAnalysis</code> to start running the\nanalysis and generate <code>analysisResult</code> events.\n\n<br><br>Currently, analyses can only be applied to one session/recording.\nThis restriction will be relaxed in the future.",
+            "description": "The Analysis domain is used to efficiently analyze the program state at many\nexecution points. Analysis specifications are based on the MapReduce\nalgorithm: a map operation is performed on all the execution points of\ninterest, and the results are reduced to a summary afterwards.\n\n<br><br>The life cycle of an analysis is as follows. First, use <code>createAnalysis</code>\nto create the analysis and specify its map and reduce operations. Next, use one\nor more other commands to specify the set of execution points to apply the\nanalysis to. Finally, use <code>runAnalysis</code> to start running the\nanalysis and generate <code>analysisResult</code> events.\n\n<br><br>All commands and events in this domain must include a <code>sessionId</code>.",
+            "sessionId": true,
             "types": [
                 {
                     "id": "AnalysisId",
@@ -2478,11 +3279,6 @@
                     "description": "Input to the mapper function.",
                     "$ref": "Recording.TimeStampedPoint",
                     "properties": [
-                        {
-                            "name": "sessionId",
-                            "description": "Associated session ID for the current execution point.",
-                            "$ref": "Session.SessionId"
-                        },
                         {
                             "name": "pauseId",
                             "description": "Pause ID created for the current execution point.",
@@ -2527,6 +3323,18 @@
                             "type": "string"
                         },
                         {
+                            "name": "name",
+                            "description": "A logical name for the analysis.  Does not have any constraints\naside from being a valid string.  May be omitted.",
+                            "optional": true,
+                            "type": "string"
+                        },
+                        {
+                            "name": "priority",
+                            "description": "A priority for the analysis.  The priority must be one of the strings\n<code>\"user\"</code> (indicating that the analysis was user-created),\nor <code>\"app\"</code> (indicating that the analysis was automatically\ncreated by the frontend app).  The priority may be omitted, in\nwhich case <code>\"user\"</code> priority is assumed.",
+                            "optional": true,
+                            "type": "string"
+                        },
+                        {
                             "name": "reducer",
                             "description": "Body of the reducer function. The reducer function takes two arguments:\n<code>key</code> is an <code>AnalysisKey</code>, and <code>values</code>\nis an array of <code>AnalysisValue</code>. All the values\nwere associated with the key by an earlier call to <code>mapper</code>\n<strong>or</strong> <code>reducer</code>. The reducer function must\nreturn an <code>AnalysisValue</code>, which summarizes all\nthe input values and will be associated with <code>key</code> for\n<code>analysisResult</code> events or further calls to the reducer.\nThe reducer may be omitted if no reduction phase is needed.",
                             "optional": true,
@@ -2536,6 +3344,12 @@
                             "name": "effectful",
                             "description": "Whether effectful commands in the <code>Pause</code> domain might be\nsent by the mapper function. An analysis which does not use effectful\ncommands will run more efficiently. See the <code>Pause</code> domain\nfor which commands are effectful.",
                             "type": "boolean"
+                        },
+                        {
+                            "name": "range",
+                            "description": "Any subrange of the recording which the analysis will run in.",
+                            "optional": true,
+                            "$ref": "Recording.PointRange"
                         }
                     ],
                     "returns": [
@@ -2548,17 +3362,12 @@
                 },
                 {
                     "name": "addLocation",
-                    "description": "Apply the analysis to every point where a script location executes.",
+                    "description": "Apply the analysis to every point where a source location executes.",
                     "parameters": [
                         {
                             "name": "analysisId",
                             "description": "Associated analysis.",
                             "$ref": "AnalysisId"
-                        },
-                        {
-                            "name": "sessionId",
-                            "description": "Session containing the script.",
-                            "$ref": "Session.SessionId"
                         },
                         {
                             "name": "location",
@@ -2575,7 +3384,7 @@
                 },
                 {
                     "name": "addFunctionEntryPoints",
-                    "description": "Apply the analysis to every function entry point in a region of a script.",
+                    "description": "Apply the analysis to every function entry point in a region of a source.",
                     "parameters": [
                         {
                             "name": "analysisId",
@@ -2583,26 +3392,21 @@
                             "$ref": "AnalysisId"
                         },
                         {
-                            "name": "sessionId",
-                            "description": "Associated session.",
-                            "$ref": "Session.SessionId"
-                        },
-                        {
-                            "name": "scriptId",
-                            "description": "Script to look for function entry points in.",
-                            "$ref": "Debugger.ScriptId"
+                            "name": "sourceId",
+                            "description": "Source to look for function entry points in.",
+                            "$ref": "Debugger.SourceId"
                         },
                         {
                             "name": "begin",
                             "description": "If specified, earlier functions will be excluded.",
                             "optional": true,
-                            "$ref": "Debugger.ScriptLocation"
+                            "$ref": "Debugger.SourceLocation"
                         },
                         {
                             "name": "end",
                             "description": "If specified, later functions will be excluded.",
                             "optional": true,
-                            "$ref": "Debugger.ScriptLocation"
+                            "$ref": "Debugger.SourceLocation"
                         }
                     ]
                 },
@@ -2614,11 +3418,6 @@
                             "name": "analysisId",
                             "description": "Associated analysis.",
                             "$ref": "AnalysisId"
-                        },
-                        {
-                            "name": "sessionId",
-                            "description": "Associated session.",
-                            "$ref": "Session.SessionId"
                         },
                         {
                             "name": "numPoints",
@@ -2637,14 +3436,9 @@
                             "$ref": "AnalysisId"
                         },
                         {
-                            "name": "sessionId",
-                            "description": "Associated session.",
-                            "$ref": "Session.SessionId"
-                        },
-                        {
                             "name": "eventType",
                             "description": "Type of event whose handler calls the analysis should be applied to.",
-                            "type": "string"
+                            "$ref": "Debugger.EventHandlerType"
                         }
                     ]
                 },
@@ -2656,17 +3450,31 @@
                             "name": "analysisId",
                             "description": "Associated analysis.",
                             "$ref": "AnalysisId"
+                        }
+                    ]
+                },
+                {
+                    "name": "addPoints",
+                    "description": "Apply the analysis to a specific set of points.",
+                    "parameters": [
+                        {
+                            "name": "analysisId",
+                            "description": "Associated analysis.",
+                            "$ref": "AnalysisId"
                         },
                         {
-                            "name": "sessionId",
-                            "description": "Associated session.",
-                            "$ref": "Session.SessionId"
+                            "name": "points",
+                            "description": "Points to apply the analysis to.",
+                            "type": "array",
+                            "items": {
+                                "$ref": "Recording.ExecutionPoint"
+                            }
                         }
                     ]
                 },
                 {
                     "name": "runAnalysis",
-                    "description": "Run the analysis. After this is called, <code>analysisResult</code> and/or\n<code>analysisError</code> events will be emitted as results are gathered.\nDoes not return until the analysis has finished and all events have been\nemitted.",
+                    "description": "Run the analysis. After this is called, <code>analysisResult</code> and/or\n<code>analysisError</code> events will be emitted as results are gathered.\nDoes not return until the analysis has finished and all events have been\nemitted. Results will not be gathered in parts of the recording that are\nunloaded, see <code>Session.listenForLoadChanges</code> and\n<code>Session.loadRegion</code>.",
                     "parameters": [
                         {
                             "name": "analysisId",
@@ -2688,7 +3496,7 @@
                 },
                 {
                     "name": "findAnalysisPoints",
-                    "description": "Find the set of execution points at which an analysis will run. After this\nis called, <code>analysisPoints</code> events will be emitted as the points\nare found. Does not return until events for all points have been emitted.\nCan only be used after the analysis has started running.",
+                    "description": "Find the set of execution points at which an analysis will run. After this\nis called, <code>analysisPoints</code> events will be emitted as the points\nare found. Does not return until events for all points have been emitted.\nPoints will not be emitted for parts of the recording that are\nunloaded, see <code>Session.listenForLoadChanges</code> and\n<code>Session.loadRegion</code>.",
                     "parameters": [
                         {
                             "name": "analysisId",
@@ -2756,12 +3564,529 @@
             ]
         },
         {
-            "domain": "Target",
-            "description": "The Target domain includes commands that are sent by the Record Replay Driver\nto the target application which it is attached to. Protocol clients should\nnot use this domain. See https://replay.io/driver for more information.",
+            "domain": "Network",
+            "description": "The Network domain is used to inspect the Network state at particular execution points.\n\n<br><br>All commands and events in this domain must include both a <code>sessionId</code>.",
+            "sessionId": true,
+            "types": [
+                {
+                    "id": "RequestId",
+                    "description": "The string id of a request.",
+                    "type": "string"
+                },
+                {
+                    "id": "BodyRange",
+                    "description": "The range offsets within a request/response body.",
+                    "type": "object",
+                    "properties": [
+                        {
+                            "name": "start",
+                            "description": "The inclusive start location of the data.\nDefaults to zero.",
+                            "optional": true,
+                            "type": "integer"
+                        },
+                        {
+                            "name": "end",
+                            "description": "The exclusive end location of the data.\nDefaults to the length of the data.",
+                            "optional": true,
+                            "type": "integer"
+                        }
+                    ]
+                },
+                {
+                    "id": "BodyData",
+                    "description": "A piece of request/response data. Currently only base64-encoded\nbinary data, but may be expanded in the future to handle\nwebsockets and other data stream types.",
+                    "type": "object",
+                    "properties": [
+                        {
+                            "name": "offset",
+                            "description": "The inclusive start location of the data.",
+                            "type": "integer"
+                        },
+                        {
+                            "name": "length",
+                            "description": "The length of the data.",
+                            "type": "integer"
+                        },
+                        {
+                            "name": "value",
+                            "description": "A string containing the data.",
+                            "type": "string"
+                        }
+                    ]
+                },
+                {
+                    "id": "RequestBodyData",
+                    "description": "A piece of data from the request body.",
+                    "$ref": "BodyData",
+                    "properties": [
+                        {
+                            "name": "point",
+                            "description": "The point where the this piece of request data was sent, for example\nif the request body was generated from a stream, or as many separate\nwebsocket messages.",
+                            "optional": true,
+                            "$ref": "Recording.TimeStampedPoint"
+                        }
+                    ]
+                },
+                {
+                    "id": "ResponseBodyData",
+                    "description": "A piece of data from the response body.",
+                    "$ref": "BodyData"
+                },
+                {
+                    "id": "RequestInfo",
+                    "description": "The basic information about a request.",
+                    "$ref": "Recording.TimeStampedPoint",
+                    "properties": [
+                        {
+                            "name": "id",
+                            "description": "The unique identifier for this request.",
+                            "$ref": "RequestId"
+                        },
+                        {
+                            "name": "triggerPoint",
+                            "description": "The point where the request was initiated. The same point may trigger\nmultiple requests, such as in the case of a request that redirects.",
+                            "optional": true,
+                            "$ref": "Recording.TimeStampedPoint"
+                        }
+                    ]
+                },
+                {
+                    "id": "RequestEventInfo",
+                    "description": "The basic information about events emitted by a request.",
+                    "type": "object",
+                    "properties": [
+                        {
+                            "name": "id",
+                            "description": "The unique identifier for the request this event\nis associated with.",
+                            "$ref": "RequestId"
+                        },
+                        {
+                            "name": "time",
+                            "description": "The time that the info appeared.",
+                            "type": "number"
+                        },
+                        {
+                            "name": "event",
+                            "description": "Data about the event that occured.",
+                            "$ref": "RequestEvent"
+                        }
+                    ]
+                },
+                {
+                    "id": "Header",
+                    "description": "An HTTP header key/value pair.",
+                    "type": "object",
+                    "properties": [
+                        {
+                            "name": "name",
+                            "description": "The header name.",
+                            "type": "string"
+                        },
+                        {
+                            "name": "value",
+                            "description": "The header value.",
+                            "type": "string"
+                        }
+                    ]
+                },
+                {
+                    "id": "RequestEvent",
+                    "description": "A tagged union type of all of the request events.\nUse 'kind' to differentiate the events.",
+                    "type": "object",
+                    "enum": [
+                        {
+                            "$ref": "RequestOpenEvent"
+                        },
+                        {
+                            "$ref": "RequestRawHeaderEvent"
+                        },
+                        {
+                            "$ref": "RequestDestinationEvent"
+                        },
+                        {
+                            "$ref": "RequestResponseEvent"
+                        },
+                        {
+                            "$ref": "RequestResponseRawHeaderEvent"
+                        },
+                        {
+                            "$ref": "RequestDoneEvent"
+                        },
+                        {
+                            "$ref": "RequestFailedEvent"
+                        },
+                        {
+                            "$ref": "RequestResponseBodyEvent"
+                        }
+                    ]
+                },
+                {
+                    "id": "RequestOpenEvent",
+                    "description": "An event representing the beginning of a request.",
+                    "type": "object",
+                    "properties": [
+                        {
+                            "name": "kind",
+                            "description": "A tagged-union identifier for this event.",
+                            "type": "\"request\""
+                        },
+                        {
+                            "name": "requestUrl",
+                            "description": "The URL being loaded by the request.",
+                            "type": "string"
+                        },
+                        {
+                            "name": "requestMethod",
+                            "description": "The HTTP method used for the request.",
+                            "type": "string"
+                        },
+                        {
+                            "name": "requestHeaders",
+                            "description": "The HTTP headers sent with the request.",
+                            "type": "array",
+                            "items": {
+                                "$ref": "Header"
+                            }
+                        },
+                        {
+                            "name": "requestCause",
+                            "description": "A short string identifying the cause of the request,\ne.g. 'img', 'fetch', 'document', and so on",
+                            "optional": true,
+                            "type": "string"
+                        }
+                    ]
+                },
+                {
+                    "id": "RequestRawHeaderEvent",
+                    "description": "An event representing the request having sent raw headers.",
+                    "type": "object",
+                    "properties": [
+                        {
+                            "name": "kind",
+                            "description": "A tagged-union identifier for this event.",
+                            "type": "\"request-raw-headers\""
+                        },
+                        {
+                            "name": "requestRawHeaders",
+                            "description": "The raw HTTP header that was sent with the request.",
+                            "type": "string"
+                        }
+                    ]
+                },
+                {
+                    "id": "RequestDestinationEvent",
+                    "description": "An event representing information about the request's destination.",
+                    "type": "object",
+                    "properties": [
+                        {
+                            "name": "kind",
+                            "description": "A tagged-union identifier for this event.",
+                            "type": "\"request-destination\""
+                        },
+                        {
+                            "name": "destinationAddress",
+                            "description": "The IP address of the destination.",
+                            "type": "string"
+                        },
+                        {
+                            "name": "destinationPort",
+                            "description": "The port number of the destination.",
+                            "type": "number"
+                        }
+                    ]
+                },
+                {
+                    "id": "RequestResponseEvent",
+                    "description": "An event representing the response to a request being received.",
+                    "type": "object",
+                    "properties": [
+                        {
+                            "name": "kind",
+                            "description": "A tagged-union identifier for this event.",
+                            "type": "\"response\""
+                        },
+                        {
+                            "name": "responseHeaders",
+                            "description": "The HTTP headers sent with the response.",
+                            "type": "array",
+                            "items": {
+                                "$ref": "Header"
+                            }
+                        },
+                        {
+                            "name": "responseProtocolVersion",
+                            "description": "The HTTP version of the response.",
+                            "type": "string"
+                        },
+                        {
+                            "name": "responseStatus",
+                            "description": "The HTTP status code of the response.",
+                            "type": "number"
+                        },
+                        {
+                            "name": "responseStatusText",
+                            "description": "The HTTP status text of the response.",
+                            "type": "string"
+                        },
+                        {
+                            "name": "responseFromCache",
+                            "description": "Indicates whether the response was served from cache.",
+                            "type": "boolean"
+                        }
+                    ]
+                },
+                {
+                    "id": "RequestResponseRawHeaderEvent",
+                    "description": "An event representing the response having received raw headers.",
+                    "type": "object",
+                    "properties": [
+                        {
+                            "name": "kind",
+                            "description": "A tagged-union identifier for this event.",
+                            "type": "\"response-raw-headers\""
+                        },
+                        {
+                            "name": "responseRawHeaders",
+                            "description": "The raw HTTP header that was sent with the response.",
+                            "type": "string"
+                        }
+                    ]
+                },
+                {
+                    "id": "RequestResponseBodyEvent",
+                    "description": "An event representing the presence of a response body for this\nrequest, indicating a Network.getResponseBody command will not\nthrow an error for this request.",
+                    "type": "object",
+                    "properties": [
+                        {
+                            "name": "kind",
+                            "description": "A tagged-union identifier for this event.",
+                            "type": "\"response-body\""
+                        }
+                    ]
+                },
+                {
+                    "id": "RequestBodyEvent",
+                    "description": "An event representing the presence of a request body for this\nrequest, indicating a Network.getRequestBody command will not\nthrow an error for this request.",
+                    "type": "object",
+                    "properties": [
+                        {
+                            "name": "kind",
+                            "description": "A tagged-union identifier for this event.",
+                            "type": "\"request-body\""
+                        }
+                    ]
+                },
+                {
+                    "id": "RequestDoneEvent",
+                    "description": "An event representing the request having completed.",
+                    "type": "object",
+                    "properties": [
+                        {
+                            "name": "kind",
+                            "description": "A tagged-union identifier for this event.",
+                            "type": "\"request-done\""
+                        },
+                        {
+                            "name": "encodedBodySize",
+                            "description": "The number of bytes transferred for the body.",
+                            "type": "number"
+                        },
+                        {
+                            "name": "decodedBodySize",
+                            "description": "The number of bytes after content decoding.\nNull if the data didn't have a content-encoding.",
+                            "optional": true,
+                            "type": "number"
+                        }
+                    ]
+                },
+                {
+                    "id": "RequestFailedEvent",
+                    "description": "An event representing the request having failed.",
+                    "type": "object",
+                    "properties": [
+                        {
+                            "name": "kind",
+                            "description": "A tagged-union identifier for this event.",
+                            "type": "\"request-failed\""
+                        },
+                        {
+                            "name": "requestFailedReason",
+                            "description": "A short description of the cause of the failure.",
+                            "optional": true,
+                            "type": "string"
+                        }
+                    ]
+                }
+            ],
             "commands": [
                 {
+                    "name": "getRequestBody",
+                    "description": "Query the recording for all of the parts of this request body.\nThe server will emit 'requestBodyData' events for all parts, and\nthis command will not complete until all parts have been sent.",
+                    "parameters": [
+                        {
+                            "name": "id",
+                            "description": "The id of the request to load.",
+                            "$ref": "RequestId"
+                        },
+                        {
+                            "name": "range",
+                            "description": "The range of data to fetch from the body.",
+                            "optional": true,
+                            "$ref": "BodyRange"
+                        }
+                    ]
+                },
+                {
+                    "name": "getResponseBody",
+                    "description": "Query the recording for all of the parts of this response body.\nThe server will emit 'responseBodyData' events for all parts, and\nthis command will not complete until all parts have been sent.",
+                    "parameters": [
+                        {
+                            "name": "id",
+                            "description": "The id of the request to load.",
+                            "$ref": "RequestId"
+                        },
+                        {
+                            "name": "range",
+                            "description": "The range of data to fetch from the body.",
+                            "optional": true,
+                            "$ref": "BodyRange"
+                        }
+                    ]
+                },
+                {
+                    "name": "findRequests",
+                    "description": "Query the recording for all network data that is available, returning once\nall 'Network.requests' events have been dispatched."
+                }
+            ],
+            "events": [
+                {
+                    "name": "requestBodyData",
+                    "description": "Emit data about a request body as it is processed.\nParts are not guaranteed to be emitted in order.",
+                    "parameters": [
+                        {
+                            "name": "id",
+                            "description": "The id of the request to the body belongs to.",
+                            "$ref": "RequestId"
+                        },
+                        {
+                            "name": "parts",
+                            "description": "Pieces of data belonging to the request body.",
+                            "type": "array",
+                            "items": {
+                                "$ref": "RequestBodyData"
+                            }
+                        }
+                    ]
+                },
+                {
+                    "name": "responseBodyData",
+                    "description": "Emit data about a response body as it is processed.\nParts are not guaranteed to be emitted in order.",
+                    "parameters": [
+                        {
+                            "name": "id",
+                            "description": "The id of the request to the body belongs to.",
+                            "$ref": "RequestId"
+                        },
+                        {
+                            "name": "parts",
+                            "description": "Pieces of data belonging to the response body.",
+                            "type": "array",
+                            "items": {
+                                "$ref": "ResponseBodyData"
+                            }
+                        }
+                    ]
+                },
+                {
+                    "name": "requests",
+                    "description": "Describe some requests that were dispatched by the recording.\n\nNOTE: There is no guarantee that request information will be available\nbefore the request event info, so all temporal combinations should be\nsupported when processing this data.",
+                    "parameters": [
+                        {
+                            "name": "requests",
+                            "description": "A list of requests found in the recording.",
+                            "type": "array",
+                            "items": {
+                                "$ref": "RequestInfo"
+                            }
+                        },
+                        {
+                            "name": "events",
+                            "description": "A list of request event data found in the recording.",
+                            "type": "array",
+                            "items": {
+                                "$ref": "RequestEventInfo"
+                            }
+                        }
+                    ]
+                }
+            ]
+        },
+        {
+            "domain": "Target",
+            "description": "The Target domain includes commands that are sent by the Record Replay Driver\nto the target application which it is attached to. Protocol clients should\nnot use this domain. See https://replay.io/driver for more information.",
+            "types": [
+                {
+                    "id": "Capabilities",
+                    "description": "The various capabilities supported by a target.",
+                    "type": "object",
+                    "properties": [
+                        {
+                            "name": "pureEval",
+                            "description": "True if the target supports the 'pure' parameter. If this is not set,\nattempts at pure evaluation will not pass the command to the target.",
+                            "optional": true,
+                            "type": "boolean"
+                        }
+                    ]
+                },
+                {
+                    "id": "NetworkStreamData",
+                    "description": "Represents the data pieces returned from a network stream. Always \"data\" for now\nbut we'll likely add more in the future to support Websockets.",
+                    "type": "object",
+                    "properties": [
+                        {
+                            "name": "kind",
+                            "description": "A tagged-union identifier for this data type.",
+                            "type": "\"data\""
+                        },
+                        {
+                            "name": "value",
+                            "description": "A string containing the data.",
+                            "type": "string"
+                        }
+                    ]
+                },
+                {
+                    "id": "PossibleBreakpointsForSource",
+                    "type": "object",
+                    "properties": [
+                        {
+                            "name": "sourceId",
+                            "$ref": "SourceId"
+                        },
+                        {
+                            "name": "lineLocations",
+                            "type": "array",
+                            "items": {
+                                "$ref": "Debugger.SameLineSourceLocations"
+                            }
+                        }
+                    ]
+                }
+            ],
+            "commands": [
+                {
+                    "name": "getCapabilities",
+                    "description": "Query the target for general information about what capabilities it supports.",
+                    "returns": [
+                        {
+                            "name": "capabilities",
+                            "$ref": "Capabilities"
+                        }
+                    ]
+                },
+                {
                     "name": "convertLocationToFunctionOffset",
-                    "description": "Get the function ID / offset to use for a script location, if there is one.",
+                    "description": "Get the function ID / offset to use for a source location, if there is one.",
                     "parameters": [
                         {
                             "name": "location",
@@ -2799,6 +4124,35 @@
                         {
                             "name": "location",
                             "$ref": "Debugger.Location"
+                        }
+                    ]
+                },
+                {
+                    "name": "convertFunctionOffsetsToLocations",
+                    "description": "Get all the locations to use for some offsets in a function. This can be\nimplemented more efficiently by some targets than when separate\n<code>convertFunctionOffsetToLocation</code> commands are used.",
+                    "parameters": [
+                        {
+                            "name": "functionId",
+                            "description": "Function ID shared by all the offsets.",
+                            "type": "string"
+                        },
+                        {
+                            "name": "offsets",
+                            "description": "Sorted array of offsets to compute the locations for.",
+                            "type": "array",
+                            "items": {
+                                "type": "integer"
+                            }
+                        }
+                    ],
+                    "returns": [
+                        {
+                            "name": "locations",
+                            "description": "Resulting locations, with the same length as <code>offsets</code>.",
+                            "type": "array",
+                            "items": {
+                                "$ref": "Debugger.Location"
+                            }
                         }
                     ]
                 },
@@ -2841,21 +4195,21 @@
                 },
                 {
                     "name": "getFunctionsInRange",
-                    "description": "Get the IDs of all functions in a range within a script.",
+                    "description": "Get the IDs of all functions in a range within a source.",
                     "parameters": [
                         {
-                            "name": "scriptId",
-                            "$ref": "Debugger.ScriptId"
+                            "name": "sourceId",
+                            "$ref": "Debugger.SourceId"
                         },
                         {
                             "name": "begin",
                             "optional": true,
-                            "$ref": "Debugger.ScriptLocation"
+                            "$ref": "Debugger.SourceLocation"
                         },
                         {
                             "name": "end",
                             "optional": true,
-                            "$ref": "Debugger.ScriptLocation"
+                            "$ref": "Debugger.SourceLocation"
                         }
                     ],
                     "returns": [
@@ -2869,17 +4223,22 @@
                     ]
                 },
                 {
-                    "name": "getScriptSourceMapURL",
-                    "description": "Get any source map URL associated with a script.",
+                    "name": "getSourceMapURL",
+                    "description": "Get any source map URL associated with a source.",
                     "parameters": [
                         {
-                            "name": "scriptId",
-                            "$ref": "Debugger.ScriptId"
+                            "name": "sourceId",
+                            "$ref": "Debugger.SourceId"
                         }
                     ],
                     "returns": [
                         {
                             "name": "url",
+                            "optional": true,
+                            "type": "string"
+                        },
+                        {
+                            "name": "baseUrl",
                             "optional": true,
                             "type": "string"
                         }
@@ -2899,12 +4258,17 @@
                             "name": "url",
                             "optional": true,
                             "type": "string"
+                        },
+                        {
+                            "name": "baseUrl",
+                            "optional": true,
+                            "type": "string"
                         }
                     ]
                 },
                 {
                     "name": "getCurrentMessageContents",
-                    "description": "This command might be sent from within a RecordReplayOnConsoleMessage() call\nto get  contents of the new message. Properties in the result have the same\nmeaning as for <code>Console.Message</code>.",
+                    "description": "This command might be sent from within a RecordReplayOnConsoleMessage() call\nto get contents of the new message. Properties in the result have the same\nmeaning as for <code>Console.Message</code>.",
                     "returns": [
                         {
                             "name": "source",
@@ -2924,9 +4288,9 @@
                             "type": "string"
                         },
                         {
-                            "name": "scriptId",
+                            "name": "sourceId",
                             "optional": true,
-                            "$ref": "Debugger.ScriptId"
+                            "$ref": "Debugger.SourceId"
                         },
                         {
                             "name": "line",
@@ -2959,6 +4323,19 @@
                     ]
                 },
                 {
+                    "name": "getStackFunctionIDs",
+                    "description": "Get the IDs of the functions for all stack frames, ordered from topmost to\nbottommost.",
+                    "returns": [
+                        {
+                            "name": "frameFunctions",
+                            "type": "array",
+                            "items": {
+                                "type": "string"
+                            }
+                        }
+                    ]
+                },
+                {
                     "name": "currentGeneratorId",
                     "description": "If the topmost frame on the stack is a generator frame which can be popped\nand pushed on the stack repeatedly, return a unique ID for the frame which\nwill be consistent across each of those pops and pushes.",
                     "returns": [
@@ -2966,6 +4343,72 @@
                             "name": "id",
                             "optional": true,
                             "type": "integer"
+                        }
+                    ]
+                },
+                {
+                    "name": "topFrameLocation",
+                    "description": "Get the location of the top frame on the stack, if there is one.",
+                    "returns": [
+                        {
+                            "name": "location",
+                            "optional": true,
+                            "$ref": "Debugger.Location"
+                        }
+                    ]
+                },
+                {
+                    "name": "getCurrentNetworkRequestEvent",
+                    "description": "This command might be sent from within a RecordReplayOnNetworkRequestEvent()\ncall to get contents of the request data.",
+                    "returns": [
+                        {
+                            "name": "data",
+                            "$ref": "Network.RequestEvent"
+                        }
+                    ]
+                },
+                {
+                    "name": "getCurrentNetworkStreamData",
+                    "description": "Fetch the current data entry for a given driver OnNetworkStreamData call.",
+                    "parameters": [
+                        {
+                            "name": "index",
+                            "description": "The start index within the value to fetch.",
+                            "type": "number"
+                        },
+                        {
+                            "name": "length",
+                            "description": "The amount of data to fetch.",
+                            "type": "number"
+                        }
+                    ],
+                    "returns": [
+                        {
+                            "name": "data",
+                            "description": "The stream data available at the current location.",
+                            "$ref": "NetworkStreamData"
+                        }
+                    ]
+                },
+                {
+                    "name": "getPossibleBreakpointsForMultipleSources",
+                    "description": "This command is used, when supported by the target runtime, to collect all\npossible breakpoints for all sources of a given region in one batch. This is\nan optimization over sending one Debugger.getPossibleBreakpoints command for\neach source.",
+                    "parameters": [
+                        {
+                            "name": "sourceIds",
+                            "type": "array",
+                            "items": {
+                                "$ref": "SourceId"
+                            }
+                        }
+                    ],
+                    "returns": [
+                        {
+                            "name": "possibleBreakpoints",
+                            "type": "array",
+                            "items": {
+                                "$ref": "PossibleBreakpointsForSource"
+                            }
                         }
                     ]
                 }
@@ -2983,19 +4426,47 @@
                             "name": "buildId",
                             "description": "Build Id of the software which produced the recording.",
                             "$ref": "Recording.BuildId"
+                        },
+                        {
+                            "name": "recordingId",
+                            "description": "Identifier for the recording. Must be a version 4 UUID. If not specified,\na new ID will be created.",
+                            "optional": true,
+                            "$ref": "Recording.RecordingId"
+                        },
+                        {
+                            "name": "requireFinish",
+                            "description": "The backend will accept all recording data until it gets an\n`Internal.finishRecording` command or the connection closes. Partial\nrecordings can be useful for debugging, but if data integrity\nis important, this option can be used to avoid ending up with a\npartially-created recording.\nWith this flag enabled, a connection loss during upload will\ninvalidate the recording rather than using the partially-complete data.",
+                            "optional": true,
+                            "type": "boolean"
                         }
                     ],
                     "returns": [
                         {
                             "name": "recordingId",
-                            "description": "Identifier for the recording.",
+                            "description": "Identifier for the recording. Matches the input `recordingId` if it was\nspecified.",
                             "$ref": "Recording.RecordingId"
                         }
                     ]
                 },
                 {
+                    "name": "setRecordingMetadata",
+                    "description": "Adds metadata that is associated with the entire recording in question,\nas identified by the id field in the recordingData field. This includes things\nlike the URL being recorded as well as the token that is associated with the\nuser who started this recording.",
+                    "parameters": [
+                        {
+                            "name": "recordingData",
+                            "$ref": "RecordingData"
+                        },
+                        {
+                            "name": "metadata",
+                            "optional": true,
+                            "type": "object"
+                        }
+                    ]
+                },
+                {
                     "name": "addRecordingData",
-                    "description": "Add data to a recording. The next message sent after this must be a binary\nmessage with the data described by this message. Uploaded recordings are not\nexplicitly finished; replay sessions created for a recording will include\nall data which was successfully uploaded.",
+                    "description": "Add data to a recording. The next message sent after this must be a binary\nmessage with the data described by this message. A response to this command\nindicates that the data has been successfully received by the server, but it\ncould still be lost due to a server failure. Use `Internal.finishRecording`\nif you want to ensure that all data has been successfully stored.",
+                    "binary": true,
                     "parameters": [
                         {
                             "name": "recordingId",
@@ -3034,18 +4505,6 @@
                             "$ref": "Recording.TimeStamp"
                         },
                         {
-                            "name": "lastScreenMimeType",
-                            "description": "Mime type for graphics data at the end of the recording.",
-                            "optional": true,
-                            "$ref": "Graphics.MimeType"
-                        },
-                        {
-                            "name": "lastScreenData",
-                            "description": "Raw graphics data for the end of the recording.",
-                            "optional": true,
-                            "type": "string"
-                        },
-                        {
                             "name": "commandLineArguments",
                             "description": "Any command line arguments associated with the recording.",
                             "optional": true,
@@ -3057,63 +4516,42 @@
                     ]
                 },
                 {
-                    "name": "hasResource",
-                    "description": "Determine whether a resource is known to the cloud service.",
+                    "name": "finishRecording",
+                    "description": "Indicate that all data for the given recording has been sent and the recording\ncan be marked ready and complete. If this is not sent, the recording will be\nfinished as a sideeffect of the connection closing, but if backend issues\nwere to fail to save all of the data, there will be no way to know.",
                     "parameters": [
                         {
-                            "name": "resource",
-                            "description": "Resource to look for.",
-                            "$ref": "Resource"
-                        }
-                    ],
-                    "returns": [
-                        {
-                            "name": "known",
-                            "description": "Whether the resource's contents are known.",
-                            "type": "boolean"
+                            "name": "recordingId",
+                            "description": "ID of the recording being finished.",
+                            "$ref": "Recording.RecordingId"
                         }
                     ]
                 },
                 {
-                    "name": "addResource",
-                    "description": "Upload a resource's contents to the cloud service.",
-                    "parameters": [
-                        {
-                            "name": "resource",
-                            "description": "Resource to add.",
-                            "$ref": "Resource"
-                        },
-                        {
-                            "name": "contents",
-                            "description": "Text contents of the resource.",
-                            "type": "string"
-                        }
-                    ]
-                },
-                {
-                    "name": "addRecordingResource",
-                    "description": "Associate a resource with a recording.",
+                    "name": "beginRecordingResourceUpload",
+                    "description": "Lock a given recording so that sessions will not be created\nuntil the lock has been removed.",
                     "parameters": [
                         {
                             "name": "recordingId",
                             "description": "ID of the recording.",
                             "$ref": "Recording.RecordingId"
-                        },
+                        }
+                    ],
+                    "returns": [
                         {
-                            "name": "resource",
-                            "description": "Resource which the recording is associated with.",
-                            "$ref": "Resource"
+                            "name": "key",
+                            "description": "An identifier for the lock, in order to unlock.",
+                            "type": "string"
                         }
                     ]
                 },
                 {
-                    "name": "getAssertionFilters",
-                    "description": "Get filters for where to add more detailed assertions when recording that\nbehavior is consistent with the replay. These are used when analyzing crashes.",
-                    "returns": [
+                    "name": "endRecordingResourceUpload",
+                    "description": "Unlock a lock so that sessions may be created.",
+                    "parameters": [
                         {
-                            "name": "filters",
-                            "optional": true,
-                            "type": "object"
+                            "name": "key",
+                            "description": "ID of the recording.",
+                            "type": "string"
                         }
                     ]
                 },
@@ -3138,50 +4576,79 @@
                     ]
                 },
                 {
-                    "name": "labelTestSession",
-                    "description": "Mark a session which was created for an automated test.",
+                    "name": "reportCrash",
+                    "description": "Report information about a crash while recording.",
                     "parameters": [
                         {
-                            "name": "sessionId",
-                            "$ref": "Session.SessionId"
-                        }
-                    ]
-                },
-                {
-                    "name": "getRecordings",
-                    "description": "Get the user's recordings",
-                    "parameters": [
-                        {
-                            "name": "authId",
-                            "type": "string"
-                        }
-                    ],
-                    "returns": [
-                        {
-                            "name": "recordings",
-                            "type": "array",
-                            "items": {
-                                "type": "object"
-                            }
+                            "name": "data",
+                            "type": "object"
                         }
                     ]
                 }
             ],
             "types": [
                 {
-                    "id": "Resource",
-                    "description": "Information about a file based resource. Currently, resources are used for\nsource maps and original sources.",
+                    "id": "RecordingData",
+                    "description": "Metadata that can be associated with a recording.",
                     "type": "object",
                     "properties": [
                         {
+                            "name": "id",
+                            "$ref": "Recording.RecordingId"
+                        },
+                        {
                             "name": "url",
-                            "description": "URL of the resource.",
                             "type": "string"
                         },
                         {
-                            "name": "checksum",
-                            "description": "Checksum of the resource's contents.",
+                            "name": "title",
                             "type": "string"
+                        },
+                        {
+                            "name": "duration",
+                            "type": "integer"
+                        },
+                        {
+                            "name": "lastScreenData",
+                            "type": "string"
+                        },
+                        {
+                            "name": "lastScreenMimeType",
+                            "type": "string"
+                        },
+                        {
+                            "name": "operations",
+                            "$ref": "OperationsData"
+                        }
+                    ]
+                },
+                {
+                    "id": "OperationsData",
+                    "description": "Operations that could be considered security sensitive and is\ncurrently targeted at times when the recording accesses existing\ninformation from the user's profile like cookies and local storage.",
+                    "type": "object",
+                    "properties": [
+                        {
+                            "name": "scriptDomains",
+                            "type": "array",
+                            "items": {
+                                "type": "string"
+                            }
+                        },
+                        {
+                            "name": "cookies",
+                            "optional": true,
+                            "type": "array",
+                            "items": {
+                                "type": "string"
+                            }
+                        },
+                        {
+                            "name": "storage",
+                            "optional": true,
+                            "type": "array",
+                            "items": {
+                                "type": "string"
+                            }
                         }
                     ]
                 }
