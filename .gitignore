@@ -1,6 +1,7 @@
 .idea/
 _site/
 devtools-protocol/
+protocol/
 
 .jekyll-metadata
 node_modules/

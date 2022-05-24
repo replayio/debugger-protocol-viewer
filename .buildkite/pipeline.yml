@@ -1,0 +1,11 @@
+env:
+  FORCE_COLOR: 1
+  GIT_TERMINAL_PROMPT: 0
+
+steps:
+  - command: >
+      earthly +build &&
+      aws s3 sync protocol s3://recordreplay-website/protocol/ &&
+      aws cloudfront create-invalidation --distribution-id E3U30CHVUQVFAF --paths "/protocol/*"
+    agents:
+      - "earthly=true"
