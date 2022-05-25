@@ -3,7 +3,7 @@ set -x
 
 # Machine-specific path, naturally
 local_script_path="$( cd "$( dirname "${BASH_SOURCE[0]}" )" && pwd )"
-protocol_repo_path="$local_script_path/node_modules/@recordreplay/protocol"
+protocol_repo_path="$local_script_path/node_modules/@replayio/protocol"
 
 protocol_path="$protocol_repo_path/json/protocol.json"
 
