@@ -9,3 +9,4 @@ steps:
       aws cloudfront create-invalidation --distribution-id E3U30CHVUQVFAF --paths "/protocol/*"
     agents:
       - "earthly=true"
+      - "deploy=true"
