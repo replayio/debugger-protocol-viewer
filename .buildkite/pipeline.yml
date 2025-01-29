@@ -3,11 +3,17 @@ env:
   GIT_TERMINAL_PROMPT: 0
 
 steps:
+  - label: "Deploy Replay Protocol docs"
+    plugins:
+      - seek-oss/aws-sm#v2.3.1:
+          region: us-east-2
+          env:
+            EARTHLY_TOKEN: earthly-token
   # We disable earthly's caching because otherwise we'd be at risk of publishing
   # whatever protocol version Earthly has in its cache, instead of reinstalling
   # the latest version from npm.
   - command: >
-      earthly --no-cache +build &&
+      earthly --org replay --auth-token $$EARTHLY_TOKEN --no-cache +build &&
       aws s3 sync protocol s3://recordreplay-website/protocol/ &&
       aws cloudfront create-invalidation --distribution-id E3U30CHVUQVFAF --paths "/protocol/*"
     agents:
